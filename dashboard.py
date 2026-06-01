@@ -5,6 +5,7 @@ from datetime import datetime
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
+import requests
 
 # ==================== CONFIGURATION ====================
 st.set_page_config(
@@ -64,13 +65,6 @@ st.markdown("""
 
     [data-testid="stSidebar"] { background-color: #1a1f2e; }
     [data-testid="stSidebar"] * { color: #e2e8f0 !important; }
-
-    .nav-item {
-        padding: 10px 15px; border-radius: 8px; margin: 4px 0;
-        cursor: pointer; transition: background 0.2s;
-    }
-    .nav-item:hover { background: rgba(255,255,255,0.1); }
-    .nav-item-active { background: rgba(31,119,180,0.4); border-left: 3px solid #1f77b4; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -94,7 +88,12 @@ def verifier_mot_de_passe():
             st.markdown("""
             <div style='text-align:center; padding:40px; background:white;
                         border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,0.1);'>
-                <div style='font-size:60px;'>🏭</div>
+            """, unsafe_allow_html=True)
+            
+            # Logo Adient
+            st.image("https://www.adient.com/themes/custom/adient/logo.svg", width=150)
+            
+            st.markdown("""
                 <h1 style='color:#1f77b4; margin:10px 0 5px;'>LECTRA Dashboard</h1>
                 <p style='color:#888; margin-bottom:5px;'>Adient Morocco — Tiflet</p>
                 <p style='color:#aaa; font-size:13px;'>Suivi de Performance Atelier de Coupe</p>
@@ -153,9 +152,6 @@ def sidebar_navigation():
             st.session_state.page_active = "Accueil"
 
         for icon, nom, desc in pages:
-            is_active = st.session_state.page_active == nom
-            bg = "rgba(31,119,180,0.3)" if is_active else "transparent"
-            border = "border-left: 3px solid #1f77b4;" if is_active else ""
             if st.button(f"{icon}  {nom}", key=f"nav_{nom}", use_container_width=True,
                          help=desc):
                 st.session_state.page_active = nom
@@ -189,16 +185,20 @@ def time_to_minutes(val):
 
 
 def charger_donnees():
-    excel_path = "modele_lectra.xlsx"
-    if not os.path.exists(excel_path):
-        return None
+    """Charge les données depuis le fichier Excel sur GitHub"""
     try:
-        all_sheets = pd.read_excel(excel_path, sheet_name=None)
+        url = "https://raw.githubusercontent.com/badresfouriin-ops/streamlit-dashboard/main/modele_lectra.xlsx"
+        response = requests.get(url)
+        with open("temp.xlsx", "wb") as f:
+            f.write(response.content)
+        
+        all_sheets = pd.read_excel("temp.xlsx", sheet_name=None)
         dataframes = []
-        for sheet_name, df in all_sheets.items():
-            if df is not None and not df.empty:
-                df['Machine'] = sheet_name
-                dataframes.append(df)
+        for sheet_name, df_sheet in all_sheets.items():
+            if df_sheet is not None and not df_sheet.empty:
+                df_sheet['Machine'] = sheet_name
+                dataframes.append(df_sheet)
+        
         if dataframes:
             df = pd.concat(dataframes, ignore_index=True)
             df['CUTTING TIME'] = pd.to_numeric(df['CUTTING TIME'], errors='coerce').fillna(0)
@@ -207,7 +207,7 @@ def charger_donnees():
             return df
         return None
     except Exception as e:
-        st.error(f"Erreur : {e}")
+        st.error(f"Erreur de chargement: {e}")
         return None
 
 
@@ -255,7 +255,6 @@ def page_accueil(df, df_tps):
     page_header("🏠", "Tableau de Bord — Vue d'ensemble",
                 "Adient Morocco | Atelier de Coupe | Projet MMA / Mercedes")
 
-    # KPIs
     tps_moyen        = df_tps['TPS (%)'].mean()
     adv_moyen        = df_tps['ADV (%)'].mean() if df_tps['ADV (%)'].sum() > 0 else 0
     machines_nok     = len(df_tps[df_tps['TPS (%)'] < 75])
@@ -282,7 +281,6 @@ def page_accueil(df, df_tps):
 
     st.markdown("---")
 
-    # Jauge TPS moyen
     col1, col2 = st.columns([1, 2])
     with col1:
         st.markdown('<div class="section-title">🎯 Jauge TPS Atelier</div>', unsafe_allow_html=True)
@@ -332,8 +330,6 @@ def page_accueil(df, df_tps):
                 st.markdown(f'<div class="alert-card-green"><b>{r["Machine"]}</b><br><small>TPS: {r["TPS (%)"]:.1f}%</small></div>', unsafe_allow_html=True)
 
     st.markdown("---")
-
-    # Résumé tableau
     st.markdown('<div class="section-title">📊 Résumé Performance par Machine</div>', unsafe_allow_html=True)
     df_resume = df_tps[['Machine', 'TPS (%)', 'Objectif (%)', 'Écart (%)', 'ADV (%)', 'Statut']].copy()
     st.dataframe(df_resume, use_container_width=True, hide_index=True)
@@ -343,7 +339,6 @@ def page_accueil(df, df_tps):
 def page_tps(df, df_tps):
     page_header("⚙️", "TPS & Performance", "Taux de Productivité Synthétique par machine")
 
-    # Graphique barres TPS
     st.markdown('<div class="section-title">📊 TPS par Machine vs Objectif (75%)</div>', unsafe_allow_html=True)
     colors = ['#d62728' if t < 40 else '#ff7f0e' if t < 75 else '#2ca02c' for t in df_tps['TPS (%)']]
     fig = go.Figure()
@@ -368,7 +363,6 @@ def page_tps(df, df_tps):
     st.markdown("---")
     col1, col2 = st.columns(2)
 
-    # Heatmap
     with col1:
         st.markdown('<div class="section-title">🗺️ Heatmap Cutting Time</div>', unsafe_allow_html=True)
         if 'DATE' in df.columns:
@@ -380,7 +374,6 @@ def page_tps(df, df_tps):
             fig_heat.update_layout(height=350)
             st.plotly_chart(fig_heat, use_container_width=True)
 
-    # Évolution TPS journalier
     with col2:
         st.markdown('<div class="section-title">📈 Évolution TPS journalier</div>', unsafe_allow_html=True)
         if 'DATE' in df.columns:
@@ -411,8 +404,6 @@ def page_tps(df, df_tps):
             st.plotly_chart(fig_evol, use_container_width=True)
 
     st.markdown("---")
-
-    # Jauges individuelles
     st.markdown('<div class="section-title">🎯 Jauges TPS par Machine</div>', unsafe_allow_html=True)
     machines = df_tps['Machine'].tolist()
     n_cols = min(3, len(machines))
@@ -476,7 +467,6 @@ def page_pertes(df, df_tps):
 
     st.markdown("---")
 
-    # Pareto
     st.markdown('<div class="section-title">📊 Diagramme de Pareto des Pertes</div>', unsafe_allow_html=True)
     pareto_data = pd.DataFrame({
         'Source': ['Interruptions', 'ΔT_Matelas', 'DT_POSIT'],
@@ -514,7 +504,6 @@ def page_pertes(df, df_tps):
 
     st.markdown("---")
 
-    # Camemberts par machine
     st.markdown('<div class="section-title">🥧 Répartition des pertes par machine</div>', unsafe_allow_html=True)
     machines = df_tps['Machine'].tolist()
     n_cols = min(3, len(machines))
@@ -548,14 +537,12 @@ def page_adv(df, df_tps):
         st.warning("⚠️ Colonnes DATE ou ADV non disponibles dans les données.")
         return
 
-    # ADV journalière
     df_adv = df.groupby('DATE').apply(
         lambda x: pd.to_numeric(x['ADV'], errors='coerce').mean() * 100
     ).reset_index()
     df_adv.columns = ['DATE', 'ADV (%)']
     df_adv = df_adv.dropna()
 
-    # KPIs ADV
     adv_moy = df_adv['ADV (%)'].mean()
     adv_min = df_adv['ADV (%)'].min()
     adv_max = df_adv['ADV (%)'].max()
@@ -577,7 +564,6 @@ def page_adv(df, df_tps):
 
     st.markdown("---")
 
-    # Graphique ADV
     st.markdown('<div class="section-title">📊 ADV journalière vs Objectif (100%)</div>', unsafe_allow_html=True)
     colors_adv = ['#2ca02c' if v >= 100 else '#d62728' for v in df_adv['ADV (%)']]
     fig_adv = go.Figure()
@@ -600,7 +586,6 @@ def page_adv(df, df_tps):
 
     st.markdown("---")
 
-    # ADV par machine
     st.markdown('<div class="section-title">🏭 ADV par Machine</div>', unsafe_allow_html=True)
     df_adv_m = df_tps[df_tps['ADV (%)'] > 0][['Machine', 'ADV (%)']]
     if not df_adv_m.empty:
@@ -632,7 +617,6 @@ def page_machine(df, df_tps):
 
     st.markdown("---")
 
-    # KPIs machine
     col1, col2, col3, col4 = st.columns(4)
     tps_val = df_tps_m['TPS (%)']
     color_tps = "#2ca02c" if tps_val >= 75 else "#ff7f0e" if tps_val >= 40 else "#d62728"
@@ -654,7 +638,6 @@ def page_machine(df, df_tps):
     col1, col2 = st.columns([1, 2])
 
     with col1:
-        # Jauge TPS machine
         st.markdown(f'<div class="section-title">🎯 Jauge TPS — {machine_selectionnee}</div>', unsafe_allow_html=True)
         fig_g = go.Figure(go.Indicator(
             mode="gauge+number+delta",
@@ -676,7 +659,6 @@ def page_machine(df, df_tps):
         st.plotly_chart(fig_g, use_container_width=True)
 
     with col2:
-        # Camembert des pertes
         st.markdown(f'<div class="section-title">🥧 Répartition des pertes — {machine_selectionnee}</div>', unsafe_allow_html=True)
         fig_pie = px.pie(
             values=[df_tps_m['Interruptions (min)'], df_tps_m['DT_POSIT (min)'], df_tps_m['ΔT_Matelas (min)']],
@@ -690,7 +672,6 @@ def page_machine(df, df_tps):
 
     st.markdown("---")
 
-    # Évolution journalière de cette machine
     if 'DATE' in df_m.columns:
         st.markdown(f'<div class="section-title">📈 Évolution journalière — {machine_selectionnee}</div>', unsafe_allow_html=True)
         evol = df_m.groupby('DATE')['CUTTING TIME'].sum().reset_index()
@@ -702,7 +683,6 @@ def page_machine(df, df_tps):
 
     st.markdown("---")
 
-    # Données de la machine
     st.markdown(f'<div class="section-title">📋 Données — {machine_selectionnee}</div>', unsafe_allow_html=True)
     cols_show = [c for c in ['DATE', 'Marker', 'CUTTING TIME', 'INTERRUPTIONS TIME',
                               'POSIT/Marker', 'ΔT_Matelas', 'STATE'] if c in df_m.columns]
@@ -713,7 +693,6 @@ def page_machine(df, df_tps):
 def page_donnees(df, df_tps):
     page_header("📋", "Données Brutes", "Tableau complet avec filtres et export")
 
-    # Filtres inline
     col1, col2, col3 = st.columns(3)
     with col1:
         machines = ['Toutes'] + sorted(df['Machine'].unique().tolist())
@@ -769,7 +748,6 @@ def main():
 
     sidebar_navigation()
 
-    # Chargement données
     df = charger_donnees()
     if df is None or df.empty:
         st.warning("⚠️ Aucune donnée trouvée. Vérifiez le fichier modele_lectra.xlsx")
@@ -777,7 +755,6 @@ def main():
 
     df_tps = calculer_tps_adv(df)
 
-    # Routing des pages
     page = st.session_state.get('page_active', 'Accueil')
 
     if page == "Accueil":
@@ -793,7 +770,6 @@ def main():
     elif page == "Données Brutes":
         page_donnees(df, df_tps)
 
-    # Footer
     st.markdown("---")
     st.markdown("""
     <p style='text-align:center; color:#aaa; font-size:12px;'>
