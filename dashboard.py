@@ -91,7 +91,7 @@ def verifier_mot_de_passe():
             """, unsafe_allow_html=True)
             
             # Logo Adient
-            st.image("https://www.adient.com/themes/custom/adient/logo.svg", width=150)
+            st.markdown("<div style='font-size:60px;'>🏭</div>", unsafe_allow_html=True)
             
             st.markdown("""
                 <h1 style='color:#1f77b4; margin:10px 0 5px;'>LECTRA Dashboard</h1>
