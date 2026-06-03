@@ -84,203 +84,231 @@ USERS = {
 }
 
 def verifier_mot_de_passe():
-    if 'authentifie' not in st.session_state:
+    if "authentifie" not in st.session_state:
         st.session_state.authentifie = False
         st.session_state.role = None
         st.session_state.nom_user = ""
 
     if not st.session_state.authentifie:
-        # ---- ENCODAGE DE L'IMAGE D'ARRIÈRE-PLAN EN BASE64 ----
-        bg_image_path = "background.png"  
+
+        # Encodage image de fond en base64
+        bg_image_path = "background.png"
         img_base64 = ""
-        
         if os.path.exists(bg_image_path):
             with open(bg_image_path, "rb") as image_file:
                 img_base64 = base64.b64encode(image_file.read()).decode()
-            bg_css = f"background: url(data:image/png;base64,{img_base64}) no-repeat center center fixed !important; background-size: cover !important;"
+            bg_css = f"url(data:image/png;base64,{img_base64}) no-repeat center center fixed"
         else:
-            # Dégradé bleu nuit très sombre si l'image "background.png" est absente
-            bg_css = "background: linear-gradient(135deg, #051329 0%, #0a2246 100%) !important;"
+            bg_css = "linear-gradient(135deg, #051329 0%, #0a2246 100%)"
 
-        # ---- INJECTION DU CSS SUR MESURE (STYLE SPLIT-SCREEN) ----
         st.markdown(f"""
         <style>
-        /* Nettoyage de l'interface Streamlit par défaut */
+        /* Cache header et sidebar Streamlit */
         [data-testid="stHeader"], [data-testid="stToolbar"] {{ display: none !important; }}
-        
-        .stApp {{ 
-            {bg_css}
+        [data-testid="stSidebar"] {{ display: none !important; }}
+        .block-container {{ padding: 0 !important; max-width: 100% !important; }}
+
+        /* Fond photo atelier plein écran */
+        .stApp {{
+            background: {bg_css} !important;
+            background-size: cover !important;
             height: 100vh !important;
             overflow: hidden !important;
         }}
-        
-        /* Overlay bleu sombre sur toute la page sauf la partie gauche */
+
+        /* Overlay sombre sur toute la page */
         .stApp::before {{
             content: "";
-            position: absolute;
+            position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(90deg, rgba(5,19,41,0.1) 0%, rgba(5,19,41,0.85) 40%, rgba(5,19,41,0.9) 100%);
+            background: linear-gradient(90deg, rgba(3,12,28,0.15) 0%, rgba(3,12,28,0.75) 45%, rgba(3,12,28,0.85) 100%);
             z-index: 0;
         }}
-        
-        /* Conteneur principal plein écran */
-        .login-container {{
+
+        /* Panneau blanc gauche - position fixe */
+        .login-panel {{
             position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            display: flex;
-            z-index: 1;
-        }}
-        
-        /* Panneau blanc de gauche (Exactement comme ton image) */
-        .login-panel-left {{
-            width: 32%;
-            min-width: 420px;
-            background: #ffffff;
+            top: 0; left: 0;
+            width: 380px;
             height: 100vh;
-            padding: 40px 45px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 10px 0 30px rgba(0,0,0,0.3);
+            background: #ffffff;
+            box-shadow: 8px 0 30px rgba(0,0,0,0.4);
+            z-index: 999;
             overflow-y: auto;
+            padding: 35px 40px;
+            box-sizing: border-box;
         }}
-        
-        /* Zone de droite pour le texte d'accroche et les KPIs */
-        .login-panel-right {{
-            flex: 1;
-            padding: 80px;
+
+        /* Texte accroche droite */
+        .login-right {{
+            position: fixed;
+            top: 0; left: 380px;
+            width: calc(100vw - 380px);
+            height: 100vh;
+            z-index: 998;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            color: white;
+            justify-content: flex-end;
+            padding: 0 80px 60px 80px;
+            box-sizing: border-box;
         }}
-        
-        /* Ajustements des inputs Streamlit pour qu'ils soient propres */
+
+        /* Style inputs */
+        .stTextInput > label {{
+            color: #444 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+        }}
         .stTextInput > div > div > input {{
-            background-color: #ffffff !important;
-            border: 1px solid #e0e0e0 !important;
+            background: #f5f7fa !important;
+            border: 1.5px solid #e0e5ec !important;
             border-radius: 8px !important;
-            padding: 12px !important;
-            color: #333333 !important;
+            padding: 10px 14px !important;
+            font-size: 14px !important;
+            color: #333 !important;
+            transition: border 0.2s !important;
         }}
-        
-        /* Style du bouton Se Connecter (Bleu nuit profond) */
+        .stTextInput > div > div > input:focus {{
+            border-color: #a3c614 !important;
+            box-shadow: 0 0 0 3px rgba(163,198,20,0.15) !important;
+        }}
+
+        /* Bouton connexion */
         .stButton > button {{
-            background-color: #00334e !important;
+            background: #00334e !important;
             color: white !important;
             border-radius: 8px !important;
-            padding: 12px 0px !important;
-            font-weight: 600 !important;
+            padding: 13px 0 !important;
+            font-size: 15px !important;
+            font-weight: 700 !important;
             border: none !important;
-            transition: all 0.3s ease;
+            letter-spacing: 0.5px !important;
+            transition: all 0.3s !important;
+            width: 100% !important;
         }}
         .stButton > button:hover {{
-            background-color: #004d7a !important;
-            box-shadow: 0 4px 12px rgba(0,51,78,0.3);
+            background: #004d7a !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 6px 15px rgba(0,51,78,0.35) !important;
+        }}
+
+        /* Checkbox */
+        .stCheckbox > label {{
+            font-size: 12px !important;
+            color: #666 !important;
+        }}
+        </style>
+
+        <!-- PANNEAU BLANC GAUCHE -->
+        <div class="login-panel">
+            <!-- Logo Adient -->
+            <div style="text-align:center; margin-bottom:20px;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Adient_logo.svg"
+                     style="width:130px; margin-bottom:18px;" onerror="this.style.display='none'">
+                <div style="font-size:42px; margin-bottom:8px;">✂️</div>
+                <div style="font-size:20px; font-weight:800; color:#00334e; letter-spacing:1px;">PERFORMANCE</div>
+                <div style="font-size:17px; font-weight:700; color:#a3c614; margin-bottom:10px;">ATELIER DE COUPE</div>
+                <div style="font-size:12px; color:#888; line-height:1.6; padding:0 10px;">
+                    Suivez et améliorez la performance<br>de votre atelier de coupe
+                </div>
+            </div>
+            <hr style="border:none; height:1px; background:#eef2f5; margin:15px 0 20px;">
+        </div>
+
+        <!-- TEXTE DROITE -->
+        <div class="login-right">
+            <div>
+                <div style="color:#a3c614; font-size:12px; font-weight:700; letter-spacing:3px; margin-bottom:8px;">
+                    ADIENT MOROCCO — TIFLET
+                </div>
+                <div style="color:white; font-size:36px; font-weight:800; line-height:1.2; margin-bottom:8px;">
+                    UNE PERFORMANCE<br>
+                    <span style="color:#a3c614;">QUI FAIT LA DIFFÉRENCE</span>
+                </div>
+                <div style="display:flex; gap:30px; margin-top:20px; margin-bottom:35px;">
+                    <div style="color:rgba(255,255,255,0.8); font-size:12px;">
+                        <span style="color:#a3c614; font-weight:bold;">⏱️</span> TEMPS RÉEL
+                    </div>
+                    <div style="color:rgba(255,255,255,0.8); font-size:12px;">
+                        <span style="color:#a3c614; font-weight:bold;">📊</span> KPIs
+                    </div>
+                    <div style="color:rgba(255,255,255,0.8); font-size:12px;">
+                        <span style="color:#a3c614; font-weight:bold;">🎯</span> OBJECTIFS
+                    </div>
+                    <div style="color:rgba(255,255,255,0.8); font-size:12px;">
+                        <span style="color:#a3c614; font-weight:bold;">📈</span> AMÉLIORATION
+                    </div>
+                </div>
+                <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+                            border-radius:14px; padding:22px 28px; backdrop-filter:blur(10px);">
+                    <div style="color:#a3c614; font-size:11px; font-weight:700; letter-spacing:2px; margin-bottom:16px;">
+                        INDICATEURS — DERNIER SHIFT
+                    </div>
+                    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:15px; text-align:center;">
+                        <div style="border-right:1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size:26px; font-weight:800; color:white;">41%</div>
+                            <div style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">TPS MOYEN</div>
+                        </div>
+                        <div style="border-right:1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size:26px; font-weight:800; color:white;">40%</div>
+                            <div style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">ADV ATELIER</div>
+                        </div>
+                        <div style="border-right:1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size:26px; font-weight:800; color:white;">6</div>
+                            <div style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">MACHINES</div>
+                        </div>
+                        <div>
+                            <div style="font-size:26px; font-weight:800; color:white;">900</div>
+                            <div style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">MIN/SHIFT</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Formulaire Streamlit positionné dans le panneau blanc via CSS
+        st.markdown("""
+        <style>
+        /* Positionner le formulaire Streamlit dans le panneau blanc */
+        [data-testid="stVerticalBlock"] > div:first-child {{
+            position: fixed !important;
+            top: 320px !important;
+            left: 0 !important;
+            width: 380px !important;
+            padding: 0 40px !important;
+            z-index: 1000 !important;
+            background: white !important;
         }}
         </style>
         """, unsafe_allow_html=True)
 
-        # ---- ARCHITECTURE HTML / STREAMLIT MIXTE ----
-        # Ouverture des conteneurs globaux
-        st.markdown('<div class="login-container">', unsafe_allow_html=True)
-        
-        # --- BLOC BLANC GAUCHE (Formulaire) ---
-        st.markdown('<div class="login-panel-left">', unsafe_allow_html=True)
-        
-        # Logo, Icône et Titres
-        st.markdown("""
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Adient_logo.svg" style="width: 160px; margin-bottom: 25px;">
-            <div style="font-size: 50px; margin-bottom: 10px;">📐</div>
-            <h2 style="color: #00334e; font-weight: 800; font-size: 24px; margin: 0; letter-spacing: 0.5px;">PERFORMANCE</h2>
-            <h3 style="color: #a3c614; font-weight: 700; font-size: 19px; margin: 2px 0 15px 0;">ATELIER DE COUPE</h3>
-            <p style="color: #777777; font-size: 13px; line-height: 1.5; padding: 0 20px;">
-                Suivez et améliorez la performance de votre atelier de coupe
-            </p>
-        </div>
-        <hr style="border: none; height: 1px; background: #eef2f5; margin-bottom: 25px;">
-        """, unsafe_allow_html=True)
-        
-        # Formulaire d'authentification inséré directement dans le panneau blanc
-        nom_utilisateur = st.text_input("👤 Nom d'utilisateur", placeholder="Entrez votre nom d'utilisateur")
-        mot_de_passe = st.text_input("🔐 Mot de passe", type="password", placeholder="Entrez votre mot de passe")
-        
+        # Inputs Streamlit
+        st.text_input("👤 Nom d'utilisateur", placeholder="Entrez votre nom d'utilisateur", key="login_user")
+        mot_de_passe = st.text_input("🔐 Mot de passe", type="password", placeholder="Entrez votre mot de passe", key="login_pwd")
+        st.checkbox("Se souvenir de moi", key="remember_me")
         st.markdown("<br>", unsafe_allow_html=True)
-        
-        if st.button("Se connecter", use_container_width=True):
+
+        if st.button("Se connecter", use_container_width=True, key="btn_login"):
             if mot_de_passe in USERS:
                 st.session_state.authentifie = True
                 st.session_state.role = USERS[mot_de_passe]["role"]
                 st.session_state.nom_user = USERS[mot_de_passe]["nom"]
-                st.success(f"✅ Bienvenue {USERS[mot_de_passe]['nom']} !")
                 st.rerun()
             elif mot_de_passe:
                 st.error("❌ Identifiants incorrects.")
 
-        # Pied du formulaire blanc
         st.markdown("""
-        <div style="margin-top: auto; text-align: center; color: #a3c614; font-size: 12px; font-weight: 600; padding-top: 30px;">
-            🛡️ Accès sécurisé
+        <div style="position:fixed; bottom:25px; left:0; width:380px;
+                    text-align:center; z-index:1000; background:white; padding:10px 0;">
+            <span style="color:#a3c614; font-size:12px; font-weight:600;">🛡️ Accès sécurisé</span>
         </div>
         """, unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True) # Fermeture panneau gauche
-        
-        
-        # --- BLOC DROITE (Accroches et Indicateurs contextuels) ---
-        st.markdown('<div class="login-panel-right">', unsafe_allow_html=True)
-        
-        # Partie haute : Titre d'accroche et sous-indicateurs textuels
-        st.markdown("""
-        <div>
-            <h1 style="font-size: 38px; font-weight: 800; margin-bottom: 5px; color: #ffffff; letter-spacing: 1px;">
-                UNE PERFORMANCE
-            </h1>
-            <h2 style="font-size: 28px; font-weight: 700; margin-bottom: 40px; color: #a3c614;">
-                QUI FAIT LA DIFFÉRENCE
-            </h2>
-            
-            <div style="display: flex; gap: 40px; margin-top: 20px;">
-                <div style="opacity: 0.9;"><span style="color:#a3c614; font-weight:bold;">⏱️</span> SUIVI EN TEMPS RÉEL</div>
-                <div style="opacity: 0.9;"><span style="color:#a3c614; font-weight:bold;">📊</span> INDICATEURS CLÉS</div>
-                <div style="opacity: 0.9;"><span style="color:#a3c614; font-weight:bold;">🎯</span> OBJECTIFS</div>
-                <div style="opacity: 0.9;"><span style="color:#a3c614; font-weight:bold;">📈</span> AMÉLIORATION CONTINUE</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Partie basse : Les 4 cartes transparentes d'Indicateurs Clés du Shift
-        st.markdown("""
-        <div style="background: rgba(255, 255, 255, 0.06); border-radius: 16px; padding: 25px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
-            <div style="color: #a3c614; font-weight: 700; font-size: 14px; letter-spacing: 1px; margin-bottom: 20px;">
-                INDICATEURS CLÉS (DERNIER SHIFT)
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; text-align: center;">
-                <div style="border-right: 1px solid rgba(255,255,255,0.1); padding-right: 10px;">
-                    <div style="font-size: 28px; font-weight: 800; color: #ffffff;">85%</div>
-                    <div style="font-size: 11px; opacity: 0.7; margin-top: 5px; font-weight: 500;">TAUX DE PERFORMANCE</div>
-                </div>
-                <div style="border-right: 1px solid rgba(255,255,255,0.1); padding-right: 10px;">
-                    <div style="font-size: 28px; font-weight: 800; color: #ffffff;">92%</div>
-                    <div style="font-size: 11px; opacity: 0.7; margin-top: 5px; font-weight: 500;">TAUX DE QUALITÉ</div>
-                </div>
-                <div style="border-right: 1px solid rgba(255,255,255,0.1); padding-right: 10px;">
-                    <div style="font-size: 28px; font-weight: 800; color: #ffffff;">1 024</div>
-                    <div style="font-size: 11px; opacity: 0.7; margin-top: 5px; font-weight: 500;">PIÈCES COUPÉES</div>
-                </div>
-                <div>
-                    <div style="font-size: 28px; font-weight: 800; color: #ffffff;">98%</div>
-                    <div style="font-size: 11px; opacity: 0.7; margin-top: 5px; font-weight: 500;">RESPECT DES DÉLAIS</div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True) # Fermeture panneau droit
-        st.markdown('</div>', unsafe_allow_html=True) # Fermeture conteneur global
 
         return False
     return True
+
+
 
 # ==================== SIDEBAR NAVIGATION ====================
 def sidebar_navigation():
