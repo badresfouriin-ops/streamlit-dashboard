@@ -267,26 +267,44 @@ def verifier_mot_de_passe():
         </div>
         """, unsafe_allow_html=True)
 
-        # Formulaire Streamlit positionné dans le panneau blanc via CSS
+        # CSS pour positionner le formulaire dans le panneau blanc
         st.markdown("""
         <style>
-        /* Positionner le formulaire Streamlit dans le panneau blanc */
-        [data-testid="stVerticalBlock"] > div:first-child {{
+        /* Tout le contenu Streamlit dans le panneau blanc */
+        section[data-testid="stMain"] > div {
             position: fixed !important;
-            top: 320px !important;
+            top: 0 !important;
             left: 0 !important;
             width: 380px !important;
-            padding: 0 40px !important;
+            height: 100vh !important;
+            overflow-y: auto !important;
             z-index: 1000 !important;
-            background: white !important;
-        }}
+            background: transparent !important;
+            padding: 220px 40px 20px 40px !important;
+            box-sizing: border-box !important;
+        }
+        /* Labels inputs */
+        label[data-testid="stWidgetLabel"] p {
+            color: #444 !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+        }
+        /* Message erreur */
+        [data-testid="stAlert"] {
+            width: 300px !important;
+        }
         </style>
         """, unsafe_allow_html=True)
 
         # Inputs Streamlit
         st.text_input("👤 Nom d'utilisateur", placeholder="Entrez votre nom d'utilisateur", key="login_user")
         mot_de_passe = st.text_input("🔐 Mot de passe", type="password", placeholder="Entrez votre mot de passe", key="login_pwd")
-        st.checkbox("Se souvenir de moi", key="remember_me")
+        col_check, col_link = st.columns([1, 1])
+        with col_check:
+            st.checkbox("Se souvenir de moi", key="remember_me")
+        with col_link:
+            st.markdown("<div style='text-align:right; padding-top:6px;'><a href='#' style='color:#a3c614; font-size:12px; text-decoration:none;'>Mot de passe oublié ?</a></div>", unsafe_allow_html=True)
+
         st.markdown("<br>", unsafe_allow_html=True)
 
         if st.button("Se connecter", use_container_width=True, key="btn_login"):
@@ -299,8 +317,7 @@ def verifier_mot_de_passe():
                 st.error("❌ Identifiants incorrects.")
 
         st.markdown("""
-        <div style="position:fixed; bottom:25px; left:0; width:380px;
-                    text-align:center; z-index:1000; background:white; padding:10px 0;">
+        <div style="text-align:center; margin-top:20px;">
             <span style="color:#a3c614; font-size:12px; font-weight:600;">🛡️ Accès sécurisé</span>
         </div>
         """, unsafe_allow_html=True)
