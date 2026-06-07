@@ -5,12 +5,13 @@ from datetime import datetime
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
-import base64
+import requests
+import base64  # Import indispensable pour l'encodage de l'image d'arrière-plan
 
 # ==================== CONFIGURATION ====================
 st.set_page_config(
     page_title="LECTRA Dashboard | Adient Morocco",
-    page_icon="✂️",
+    page_icon="🏭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -18,120 +19,214 @@ st.set_page_config(
 # ==================== CSS GENERAL ====================
 st.markdown("""
 <style>
-    /* Reset et styles de base */
-    .main { background-color: #f0f2f6; }
-    
-    /* Cartes KPI */
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+    /* ── Global Dark Theme ── */
+    html, body, .main {
+    color: #e2e8f0 !important;
+}
+    [data-testid="stHeader"] { background-color: #0d1117 !important; }
+    .block-container { padding-top: 1.5rem !important; }
+
+    /* ── KPI Cards ── */
     .kpi-card {
-        background: linear-gradient(135deg, #ffffff, #f8f9fa);
-        border-radius: 16px;
-        padding: 20px 12px;
+        background: #161b22;
+        border: 1px solid #21262d;
+        border-radius: 14px;
+        padding: 22px 16px 18px;
         text-align: center;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        border-left: 4px solid #1f77b4;
-        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
         margin-bottom: 10px;
     }
-    .kpi-card:hover { 
-        transform: translateY(-5px); 
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: var(--accent, #3b82f6);
+        border-radius: 14px 14px 0 0;
     }
-    .kpi-value { 
-        font-size: 38px; 
-        font-weight: 800; 
-        color: #1f77b4; 
-        line-height: 1.1; 
+    .kpi-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+        border-color: var(--accent, #3b82f6);
     }
-    .kpi-label { 
-        font-size: 13px; 
-        color: #555; 
-        margin-top: 8px; 
-        font-weight: 500; 
+    .kpi-value {
+        font-family: 'Syne', sans-serif;
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--accent, #3b82f6);
+        line-height: 1.1;
+        letter-spacing: -0.5px;
     }
-    .kpi-unit { 
-        font-size: 11px; 
-        color: #aaa; 
-        margin-top: 4px; 
-    }
+    .kpi-label { font-size: 12px; color: #8b949e; margin-top: 6px; font-weight: 500; letter-spacing: 0.4px; text-transform: uppercase; }
+    .kpi-unit { font-size: 11px; color: #484f58; margin-top: 3px; }
+    .kpi-trend { font-size: 11px; margin-top: 6px; font-weight: 600; }
 
-    /* Cartes d'alertes */
+    /* ── Alert Cards ── */
     .alert-card-red {
-        background: linear-gradient(135deg, #fff5f5, #ffe0e0);
-        border-left: 4px solid #e53e3e;
-        border-radius: 10px; 
-        padding: 14px; 
-        margin-bottom: 8px;
+        background: rgba(220, 38, 38, 0.1);
+        border: 1px solid rgba(220, 38, 38, 0.3);
+        border-left: 3px solid #dc2626;
+        border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+        transition: background 0.2s;
     }
+    .alert-card-red:hover { background: rgba(220,38,38,0.16); }
     .alert-card-orange {
-        background: linear-gradient(135deg, #fffaf0, #ffecd2);
-        border-left: 4px solid #ed8936;
-        border-radius: 10px; 
-        padding: 14px; 
-        margin-bottom: 8px;
+        background: rgba(234, 88, 12, 0.1);
+        border: 1px solid rgba(234, 88, 12, 0.3);
+        border-left: 3px solid #ea580c;
+        border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+        transition: background 0.2s;
     }
+    .alert-card-orange:hover { background: rgba(234,88,12,0.16); }
     .alert-card-green {
-        background: linear-gradient(135deg, #f0fff4, #d4edda);
-        border-left: 4px solid #38a169;
-        border-radius: 10px; 
-        padding: 14px; 
-        margin-bottom: 8px;
+        background: rgba(22, 163, 74, 0.1);
+        border: 1px solid rgba(22, 163, 74, 0.3);
+        border-left: 3px solid #16a34a;
+        border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+        transition: background 0.2s;
     }
+    .alert-card-green:hover { background: rgba(22,163,74,0.16); }
+    .alert-machine { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: #e2e8f0; }
+    .alert-tps { font-size: 12px; color: #8b949e; margin-top: 2px; }
+    .alert-badge {
+        display: inline-block;
+        font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+        padding: 2px 7px; border-radius: 4px; text-transform: uppercase;
+        float: right;
+    }
+    .badge-red   { background: rgba(220,38,38,0.25);  color: #fca5a5; }
+    .badge-orange{ background: rgba(234,88,12,0.25);  color: #fed7aa; }
+    .badge-green { background: rgba(22,163,74,0.25);  color: #86efac; }
 
-    /* Titres de section */
+    /* ── Section Titles ── */
     .section-title {
-        font-size: 20px; 
-        font-weight: 700; 
-        color: #2d3748;
-        border-bottom: 3px solid #1f77b4;
-        padding-bottom: 8px; 
-        margin-bottom: 20px;
+        font-family: 'Syne', sans-serif;
+        font-size: 16px; font-weight: 700;
+        color: #e2e8f0;
+        display: flex; align-items: center; gap: 8px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #21262d;
+        margin-bottom: 16px;
+        letter-spacing: 0.2px;
+    }
+    .section-title .dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: #3b82f6; display: inline-block; flex-shrink: 0;
     }
 
-    /* En-tête de page */
+    /* ── Page Header ── */
     .page-header {
-        background: linear-gradient(135deg, #1f77b4, #2196F3);
-        color: white; 
-        padding: 20px 25px; 
-        border-radius: 12px;
-        margin-bottom: 25px;
+        background: linear-gradient(135deg, #161b22 0%, #1c2333 100%);
+        border: 1px solid #21262d;
+        border-left: 4px solid #3b82f6;
+        color: #e2e8f0;
+        padding: 22px 28px;
+        border-radius: 14px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+    }
+    .page-header::after {
+        content: '';
+        position: absolute;
+        top: -30px; right: -30px;
+        width: 120px; height: 120px;
+        border-radius: 50%;
+        background: rgba(59, 130, 246, 0.06);
+    }
+    .page-header h1 {
+        font-family: 'Syne', sans-serif !important;
+        font-size: 26px !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.5px;
+        margin: 0 !important;
+        color: #f0f6ff !important;
+    }
+    .page-header p { margin: 5px 0 0 !important; opacity: 0.6; font-size: 13px !important; }
+    .header-badge {
+        display: inline-block;
+        font-size: 10px; font-weight: 700;
+        letter-spacing: 1px; text-transform: uppercase;
+        background: rgba(59,130,246,0.15);
+        color: #93c5fd;
+        border: 1px solid rgba(59,130,246,0.3);
+        padding: 3px 10px; border-radius: 20px;
+        margin-top: 10px;
     }
 
-    /* Sidebar personnalisée */
-    [data-testid="stSidebar"] { 
-        background: linear-gradient(180deg, #1a1f2e 0%, #0f1420 100%);
-    }
-    [data-testid="stSidebar"] * { 
-        color: #e2e8f0 !important; 
-    }
-    
-    /* Boutons sidebar */
-    [data-testid="stSidebar"] .stButton button {
-        background: rgba(255,255,255,0.1);
+    /* ── Status Bar ── */
+    .status-bar {
+        display: flex; align-items: center; gap: 20px;
+        background: #161b22;
+        border: 1px solid #21262d;
         border-radius: 10px;
+        padding: 10px 20px;
+        margin-bottom: 18px;
+        font-size: 12px; color: #8b949e;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .status-online { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+
+    /* ── Summary Table ── */
+    .perf-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    .perf-table th {
+        font-family: 'Syne', sans-serif;
+        font-size: 11px; font-weight: 700;
+        color: #8b949e; text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 10px 14px;
+        background: #161b22;
+        border-bottom: 1px solid #21262d;
         text-align: left;
-        transition: all 0.3s;
+    }
+    .perf-table td {
+        padding: 11px 14px;
+        font-size: 13px; color: #c9d1d9;
+        border-bottom: 1px solid #161b22;
+    }
+    .perf-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .tps-pill {
+        display: inline-block;
+        font-weight: 700; font-size: 12px;
+        padding: 2px 10px; border-radius: 20px;
+    }
+
+    /* ── Sidebar ── */
+    [data-testid="stSidebar"] {
+        background-color: #0d1117 !important;
+        border-right: 1px solid #21262d;
+    }
+    [data-testid="stSidebar"] * { color: #c9d1d9 !important; }
+    [data-testid="stSidebar"] .stButton button {
+        background: #161b22 !important;
+        border: 1px solid #21262d !important;
+        border-radius: 8px !important;
+        color: #c9d1d9 !important;
+        font-family: 'DM Sans', sans-serif !important;
+        font-size: 13px !important;
+        transition: all 0.2s !important;
     }
     [data-testid="stSidebar"] .stButton button:hover {
-        background: rgba(31,119,180,0.4);
-        transform: translateX(5px);
+        background: #1c2333 !important;
+        border-color: #3b82f6 !important;
+        color: #93c5fd !important;
     }
 
-    /* Métriques personnalisées */
-    .metric-container {
-        background: white;
-        border-radius: 12px;
-        padding: 15px;
-        text-align: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
+    /* ── Plotly overrides for dark theme ── */
+    .js-plotly-plot .plotly { border-radius: 12px; overflow: hidden; }
+    div[data-testid="stDataFrame"] { border-radius: 10px; overflow: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
-# ==================== AUTHENTIFICATION AMÉLIORÉE ====================
+# ==================== AUTHENTIFICATION ====================
 USERS = {
-    "admin123": {"role": "admin", "nom": "Administrateur", "password": "admin123"},
-    "chef123": {"role": "chef", "nom": "Chef d'atelier", "password": "chef123"},
-    "invite123": {"role": "invite", "nom": "Invité", "password": "invite123"},
+    "admin123":  {"role": "admin",  "nom": "Administrateur"},
+    "invite123": {"role": "invite", "nom": "Invité"},
+    "chef123":   {"role": "chef",   "nom": "Chef d'atelier"},
 }
 
 def verifier_mot_de_passe():
@@ -144,42 +239,64 @@ def verifier_mot_de_passe():
     if st.session_state.authentifie:
         return True
 
-    # Image de fond
+# ==================== IMAGE DE FOND ====================
     bg_image_path = "background.png"
+
     if os.path.exists(bg_image_path):
         with open(bg_image_path, "rb") as image_file:
             img_base64 = base64.b64encode(image_file.read()).decode()
-        bg_css = f'background-image: url("data:image/png;base64,{img_base64}"); background-size: cover; background-position: center;'
-    else:
-        bg_css = "background: linear-gradient(135deg, #0a2b3e, #1a4a6f);"
 
-    st.markdown(f"""
-    <style>
-        [data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stSidebar"] {{
+        background_style = f"""
+            background-image: url("data:image/png;base64,{img_base64}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        """
+    else:
+        background_style = """
+            background: linear-gradient(135deg, #0a2b3e 0%, #1a4a6f 100%);
+        """
+
+    st.markdown(
+        f"""
+        <style>
+
+        /* Masquer les éléments Streamlit */
+        [data-testid="stHeader"],
+        [data-testid="stToolbar"],
+        [data-testid="stSidebar"] {{
             display: none !important;
         }}
-        
+
+        /* Fond principal */
+        [data-testid="stAppViewContainer"] {{
+            {background_style}
+        }}
+
+        /* Overlay sombre */
+        [data-testid="stAppViewContainer"]::before {{
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 0;
+            pointer-events: none;
+        }}
+
+        /* Contenu au-dessus de l'overlay */
+        .main,
+        .block-container {{
+            position: relative;
+            z-index: 1;
+        }}
+
         .block-container {{
             padding: 0 !important;
             max-width: 100% !important;
         }}
-        
-        .stApp {{
-            {bg_css}
-            background-attachment: fixed;
-        }}
-        
-        .stApp::before {{
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.55);
-            z-index: 0;
-        }}
-        
+
+        /* Inputs */
         .stTextInput input {{
             background: #f8fafc !important;
             border: 1px solid #d7dee8 !important;
@@ -187,8 +304,10 @@ def verifier_mot_de_passe():
             height: 36px !important;
             font-size: 13px !important;
             padding: 0 10px !important;
+            color: #000 !important;
         }}
-        
+
+        /* Bouton */
         .stButton button {{
             background: #003f52 !important;
             color: white !important;
@@ -197,17 +316,21 @@ def verifier_mot_de_passe():
             font-weight: 600 !important;
             font-size: 13px !important;
             margin-top: 5px !important;
+            border: none !important;
         }}
-        
+
         .stCheckbox label p {{
             font-size: 11px !important;
         }}
-        
+
         div[data-testid="column"] {{
             gap: 0px !important;
         }}
-    </style>
-    """, unsafe_allow_html=True)
+
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
     # Centrer le panneau blanc
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -301,121 +424,114 @@ def verifier_mot_de_passe():
         """, unsafe_allow_html=True)
 
     return False
+
+
 # ==================== SIDEBAR NAVIGATION ====================
 def sidebar_navigation():
     with st.sidebar:
         st.markdown("<br>", unsafe_allow_html=True)
-        
-        # Profil utilisateur
+        role_color = {"admin": "#3b82f6", "chef": "#f59e0b", "invite": "#8b949e"}.get(st.session_state.role, "#8b949e")
+        role_icon  = {"admin": "🔑", "chef": "⚙️", "invite": "👁️"}.get(st.session_state.role, "👤")
         st.markdown(f"""
-        <div style='text-align:center; padding:20px; background:linear-gradient(135deg, #1f77b4, #2196F3); border-radius:15px; margin-bottom:20px;'>
-            <div style='font-size:48px;'>👤</div>
-            <div style='font-size:16px; font-weight:700; margin-top:10px;'>{st.session_state.nom_user}</div>
-            <div style='font-size:12px; opacity:0.8;'>{st.session_state.role.upper()}</div>
+        <div style='text-align:center; padding:16px 12px; background:#161b22;
+                    border:1px solid #21262d; border-radius:12px; margin-bottom:16px;'>
+            <div style='font-size:36px; margin-bottom:6px;'>{role_icon}</div>
+            <div style='font-family:Syne,sans-serif; font-size:15px; font-weight:700; color:#e2e8f0;'>
+                {st.session_state.nom_user}
+            </div>
+            <div style='font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+                        color:{role_color}; margin-top:4px;'>
+                {st.session_state.role}
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Badge de rôle
         if st.session_state.role == "admin":
-            st.success("✅ Accès administrateur complet")
+            st.success("✅ Accès complet")
         elif st.session_state.role == "chef":
-            st.info("⚙️ Mode Chef d'atelier")
+            st.warning("⚙️ Chef d'atelier")
         else:
-            st.warning("👁️ Mode Lecture seule")
+            st.info("👁️ Lecture seule")
 
         st.markdown("---")
         st.markdown("### 🧭 Navigation")
 
-        # Menu de navigation amélioré
-        pages = {
-            "🏠 Accueil": "Vue d'ensemble & alertes",
-            "⚙️ TPS & Performance": "Taux de productivité",
-            "📉 Analyse des Pertes": "Interruptions & pertes", 
-            "📦 ADV Production": "Adhérence au volume",
-            "🔍 Analyse par Machine": "Détail machine",
-            "📋 Données Brutes": "Tableau & export"
-        }
+        pages = [
+            ("🏠", "Accueil",             "Vue d'ensemble & alertes"),
+            ("⚙️", "TPS & Performance",   "Taux de productivité"),
+            ("📉", "Analyse des Pertes",  "Interruptions & pertes"),
+            ("📦", "ADV Production",      "Adhérence au volume"),
+            ("🔍", "Analyse par Machine", "Détail machine"),
+            ("📋", "Données Brutes",      "Tableau & export"),
+        ]
 
         if 'page_active' not in st.session_state:
-            st.session_state.page_active = "🏠 Accueil"
+            st.session_state.page_active = "Accueil"
 
-        for page, desc in pages.items():
-            if st.button(page, key=f"nav_{page}", use_container_width=True, help=desc):
-                st.session_state.page_active = page
+        for icon, nom, desc in pages:
+            if st.button(f"{icon}  {nom}", key=f"nav_{nom}", use_container_width=True, help=desc):
+                st.session_state.page_active = nom
                 st.rerun()
 
         st.markdown("---")
-        st.markdown(f"### 🕐 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-        st.markdown("---")
+        st.markdown(f"""
+        <div style='font-family:monospace; font-size:12px; color:#484f58; text-align:center;
+                    padding:8px; background:#161b22; border-radius:8px; margin-bottom:8px;'>
+            🕐 {datetime.now().strftime('%d/%m/%Y %H:%M')}
+        </div>""", unsafe_allow_html=True)
         st.caption("LECTRA Dashboard v4.0")
         st.caption("Adient Morocco | PFE 2025")
-        
         st.markdown("---")
-        if st.button("🔓 Déconnexion", use_container_width=True, type="secondary"):
+        if st.button("🔓 Déconnexion", use_container_width=True):
             st.session_state.authentifie = False
-            st.session_state.page_active = "🏠 Accueil"
             st.rerun()
 
-# ==================== CHARGEMENT DES DONNÉES ====================
-@st.cache_data(ttl=300)
+# ==================== UTILITAIRES ====================
+def time_to_minutes(val):
+    if isinstance(val, str) and ':' in val:
+        parts = val.strip().split(':')
+        try:
+            if len(parts) == 3:
+                return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 60
+            elif len(parts) == 2:
+                return int(parts[0]) * 60 + int(parts[1])
+        except:
+            return 0
+    elif isinstance(val, (int, float)) and not pd.isna(val):
+        return float(val)
+    return 0
+
 def charger_donnees():
-    """Charge les données depuis le fichier Excel avec mise en cache"""
     excel_path = "modele_lectra.xlsx"
     
     if not os.path.exists(excel_path):
-        # Données de démonstration si fichier inexistant
         return generer_donnees_demo()
     
     try:
         all_sheets = pd.read_excel(excel_path, sheet_name=None)
         dataframes = []
+        
         for sheet_name, df in all_sheets.items():
             if df is not None and not df.empty:
                 df['Machine'] = sheet_name
+                
+                cols_to_convert = ['TPS Shift', 'ADV', 'CUTTING TIME', 'INTERRUPTIONS TIME', 'DWN TIME', 'ΔT_Matelas']
+                for col in cols_to_convert:
+                    if col in df.columns:
+                        df[col] = pd.to_numeric(df[col], errors='coerce')
+                
+                if 'DATE' in df.columns:
+                    df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
+                
                 dataframes.append(df)
         
         if dataframes:
-            df = pd.concat(dataframes, ignore_index=True)
-            
-            # Nettoyage des données
-            if 'CUTTING TIME' in df.columns:
-                df['CUTTING TIME'] = pd.to_numeric(df['CUTTING TIME'], errors='coerce').fillna(0)
-            if 'INTERRUPTIONS TIME' in df.columns:
-                df['INTERRUPTIONS TIME'] = pd.to_numeric(df['INTERRUPTIONS TIME'], errors='coerce').fillna(0)
-            if 'DATE' in df.columns:
-                df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
-            
-            return df
+            return pd.concat(dataframes, ignore_index=True)
         else:
             return generer_donnees_demo()
             
     except Exception as e:
-        st.error(f"Erreur de chargement: {e}")
         return generer_donnees_demo()
-
-def generer_donnees_demo():
-    """Génère des données de démonstration pour tester le dashboard"""
-    np.random.seed(42)
-    
-    machines = ["Machine A", "Machine B", "Machine C", "Machine D"]
-    dates = pd.date_range(start="2025-06-01", end="2025-06-03", freq="D")
-    
-    data = []
-    for machine in machines:
-        for date in dates:
-            for marker in range(1, 6):
-                data.append({
-                    'DATE': date,
-                    'Machine': machine,
-                    'Marker': f"M{marker}",
-                    'CUTTING TIME': np.random.randint(30, 120),
-                    'INTERRUPTIONS TIME': np.random.randint(0, 45),
-                    'TPS Shift': np.random.uniform(60, 85),
-                    'ADV': np.random.uniform(70, 110),
-                    'STATE': np.random.choice(["OK", "NOK", "Alerte"], p=[0.7, 0.15, 0.15])
-                })
-    
-    return pd.DataFrame(data)
 
 def calculer_tps_adv(df):
     """Calcule les indicateurs TPS et ADV par machine"""
@@ -427,490 +543,582 @@ def calculer_tps_adv(df):
     for machine in sorted(df['Machine'].unique()):
         df_m = df[df['Machine'] == machine]
         
-        # TPS (dernière valeur)
-        tps_vals = df_m['TPS Shift'].dropna() if 'TPS Shift' in df_m.columns else pd.Series()
-        tps = float(tps_vals.iloc[-1]) if len(tps_vals) > 0 else np.random.uniform(60, 85)
+        tps_vals = df_m['TPS Shift'].dropna()
+        tps_moyen = tps_vals.mean() if len(tps_vals) > 0 else 0
         
-        # ADV
         adv_vals = df_m['ADV'].dropna() if 'ADV' in df_m.columns else pd.Series()
-        adv = float(adv_vals.iloc[-1]) if len(adv_vals) > 0 else np.random.uniform(70, 110)
+        adv_moyen = adv_vals.mean() if len(adv_vals) > 0 else 0
         
-        # Temps
-        cutting = df_m['CUTTING TIME'].sum() if 'CUTTING TIME' in df_m.columns else 0
-        interruptions = df_m['INTERRUPTIONS TIME'].sum() if 'INTERRUPTIONS TIME' in df_m.columns else 0
+        cutting = df_m['CUTTING TIME'].fillna(0).sum() if 'CUTTING TIME' in df_m.columns else 0
+        interruptions = df_m['INTERRUPTIONS TIME'].fillna(0).sum() if 'INTERRUPTIONS TIME' in df_m.columns else 0
+        dwn_time = df_m['DWN TIME'].fillna(0).sum() if 'DWN TIME' in df_m.columns else 0
+        dt_matelas = df_m['ΔT_Matelas'].fillna(0).sum() if 'ΔT_Matelas' in df_m.columns else 0
         
         resultats.append({
             'Machine': machine,
-            'TPS (%)': round(tps, 1),
+            'TPS (%)': round(tps_moyen, 1),
             'Objectif (%)': 75,
-            'Écart (%)': round(tps - 75, 1),
-            'ADV (%)': round(adv, 1),
+            'Écart (%)': round(tps_moyen - 75, 1),
+            'ADV (%)': round(adv_moyen, 1),
             'Cutting (min)': round(cutting, 1),
             'Interruptions (min)': round(interruptions, 1),
-            'DT_POSIT (min)': round(interruptions * 0.3, 1),
-            'ΔT_Matelas (min)': round(interruptions * 0.2, 1),
-            'Statut': "✅ OK" if tps >= 75 else "⚠️ NOK"
+            'DWN TIME (min)': round(dwn_time, 1),
+            'ΔT_Matelas (min)': round(dt_matelas, 1),
+            'Statut': "✅ OK" if tps_moyen >= 75 else "⚠️ NOK"
         })
     
     return pd.DataFrame(resultats)
-
-def page_header(icon, titre, sous_titre):
+def page_header(icon, titre, sous_titre, badge=None):
+    badge_html = f'<span class="header-badge">{badge}</span>' if badge else ''
     st.markdown(f"""
     <div class="page-header">
-        <h1 style='margin:0; font-size:28px;'>{icon} {titre}</h1>
-        <p style='margin:8px 0 0; opacity:0.9; font-size:14px;'>{sous_titre}</p>
+        <h1>{icon} {titre}</h1>
+        <p>{sous_titre}</p>
+        {badge_html}
     </div>
     """, unsafe_allow_html=True)
 
-# ==================== PAGE ACCUEIL ====================
+# ==================== PAGE 1 : ACCUEIL ====================
 def page_accueil(df, df_tps):
-    page_header("🏠", "Tableau de Bord", "Vue d'ensemble de la performance atelier")
-    
-    if df_tps.empty:
-        st.warning("Aucune donnée disponible")
-        return
-    
-    # KPIs
-    tps_moyen = df_tps['TPS (%)'].mean()
-    adv_moyen = df_tps['ADV (%)'].mean()
-    machines_nok = len(df_tps[df_tps['TPS (%)'] < 75])
-    total_interruptions = df_tps['Interruptions (min)'].sum()
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("⚙️ TPS Moyen Atelier", f"{tps_moyen:.1f}%", 
-                  delta=f"{tps_moyen - 75:.1f}%" if tps_moyen != 75 else None,
-                  delta_color="inverse")
-    
-    with col2:
-        st.metric("📦 ADV Moyenne", f"{adv_moyen:.1f}%",
-                  delta=f"{adv_moyen - 100:.1f}%" if adv_moyen != 100 else None)
-    
-    with col3:
-        st.metric("🚨 Machines sous objectif", f"{machines_nok}/{len(df_tps)}")
-    
-    with col4:
-        st.metric("⚠️ Total Interruptions", f"{total_interruptions:.0f} min")
-    
-    st.markdown("---")
-    
-    # Graphiques
-    col_left, col_right = st.columns([1, 1.5])
-    
-    with col_left:
-        st.markdown('<div class="section-title">🎯 TPS par Machine</div>', unsafe_allow_html=True)
-        
-        # Graphique en barres
-        colors = ['#d62728' if t < 40 else '#ff7f0e' if t < 75 else '#2ca02c' 
-                  for t in df_tps['TPS (%)']]
-        
-        fig = go.Figure(data=[
-            go.Bar(x=df_tps['Machine'], y=df_tps['TPS (%)'], 
-                   marker_color=colors, text=df_tps['TPS (%)'].apply(lambda x: f"{x:.1f}%"),
-                   textposition='outside')
-        ])
-        fig.add_hline(y=75, line_dash="dash", line_color="red", 
-                      annotation_text="Objectif 75%")
-        fig.update_layout(height=400, margin=dict(t=40, b=40))
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col_right:
-        st.markdown('<div class="section-title">🚨 Alertes Machines</div>', unsafe_allow_html=True)
-        
-        # Alertes
-        critiques = df_tps[df_tps['TPS (%)'] < 40]
-        attention = df_tps[(df_tps['TPS (%)'] >= 40) & (df_tps['TPS (%)'] < 75)]
-        ok_machines = df_tps[df_tps['TPS (%)'] >= 75]
-        
-        tabs = st.tabs(["🔴 Critique", "🟠 À surveiller", "🟢 OK"])
-        
-        with tabs[0]:
-            if len(critiques) == 0:
-                st.success("✅ Aucune machine critique")
-            for _, row in critiques.iterrows():
-                st.error(f"**{row['Machine']}** - TPS: {row['TPS (%)']:.1f}%")
-        
-        with tabs[1]:
-            if len(attention) == 0:
-                st.success("✅ Aucune machine à surveiller")
-            for _, row in attention.iterrows():
-                st.warning(f"**{row['Machine']}** - TPS: {row['TPS (%)']:.1f}%")
-        
-        with tabs[2]:
-            for _, row in ok_machines.iterrows():
-                st.success(f"**{row['Machine']}** - TPS: {row['TPS (%)']:.1f}%")
-    
-    st.markdown("---")
-    st.markdown('<div class="section-title">📊 Résumé Performance</div>', unsafe_allow_html=True)
-    st.dataframe(df_tps[['Machine', 'TPS (%)', 'ADV (%)', 'Statut']], 
-                 use_container_width=True, hide_index=True)
-
-# ==================== PAGE TPS & PERFORMANCE ====================
-def page_tps(df, df_tps):
-    page_header("⚙️", "TPS & Performance", "Analyse détaillée du Taux de Productivité Synthétique")
-    
-    if df_tps.empty:
-        st.warning("Aucune donnée disponible")
-        return
-    
-    # Graphique principal
-    st.markdown('<div class="section-title">📊 Performance par Machine</div>', unsafe_allow_html=True)
-    
-    fig = go.Figure()
-    
-    fig.add_trace(go.Bar(
-        name='TPS Réel',
-        x=df_tps['Machine'], 
-        y=df_tps['TPS (%)'],
-        marker_color=['#2ca02c' if x >= 75 else '#ff7f0e' if x >= 40 else '#d62728' 
-                      for x in df_tps['TPS (%)']],
-        text=df_tps['TPS (%)'].apply(lambda x: f"{x:.1f}%"),
-        textposition='outside'
-    ))
-    
-    fig.add_trace(go.Scatter(
-        name='Objectif 75%',
-        x=df_tps['Machine'],
-        y=[75] * len(df_tps),
-        mode='lines',
-        line=dict(color='#1f77b4', width=2, dash='dash')
-    ))
-    
-    fig.update_layout(
-        title="TPS par Machine",
-        yaxis_title="TPS (%)",
-        yaxis_range=[0, 100],
-        height=450,
-        hovermode='x unified'
+    now = datetime.now()
+    page_header(
+        "🏭", "Tableau de Bord — Vue d'ensemble",
+        "Adient Morocco | Atelier de Coupe | Projet MMA / Mercedes",
+        badge=f"Mis à jour : {now.strftime('%d/%m/%Y %H:%M')}"
     )
-    
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Jauges individuelles
-    st.markdown("---")
-    st.markdown('<div class="section-title">🎯 Jauges individuelles</div>', unsafe_allow_html=True)
-    
-    cols = st.columns(min(3, len(df_tps)))
-    for idx, (_, row) in enumerate(df_tps.iterrows()):
-        with cols[idx % 3]:
-            color = "#2ca02c" if row['TPS (%)'] >= 75 else "#ff7f0e" if row['TPS (%)'] >= 40 else "#d62728"
-            
-            fig_gauge = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=row['TPS (%)'],
-                gauge={
-                    'axis': {'range': [0, 100]},
-                    'bar': {'color': color},
-                    'steps': [
-                        {'range': [0, 40], 'color': '#ffe0e0'},
-                        {'range': [40, 75], 'color': '#fff3cd'},
-                        {'range': [75, 100], 'color': '#d4edda'}
-                    ],
-                    'threshold': {
-                        'line': {'color': 'red', 'width': 2},
-                        'thickness': 0.75,
-                        'value': 75
-                    }
-                },
-                title={'text': f"<b>{row['Machine']}</b>"}
-            ))
-            fig_gauge.update_layout(height=250, margin=dict(t=50, b=20))
-            st.plotly_chart(fig_gauge, use_container_width=True)
 
-# ==================== PAGE PERTES ====================
-def page_pertes(df, df_tps):
-    page_header("📉", "Analyse des Pertes", "Identification des sources de perte de productivité")
-    
-    if df_tps.empty:
-        st.warning("Aucune donnée disponible")
-        return
-    
-    col1, col2 = st.columns(2)
-    
+    # ── Status bar ──
+    total_machines = len(df_tps)
+    ok_count   = len(df_tps[df_tps['TPS (%)'] >= 75])
+    nok_count  = total_machines - ok_count
+    health_pct = int(ok_count / total_machines * 100) if total_machines else 0
+    health_color = "#22c55e" if health_pct >= 70 else "#f59e0b" if health_pct >= 40 else "#ef4444"
+
+    st.markdown(f"""
+    <div class="status-bar">
+        <span><span class="status-dot status-online"></span> Système en ligne</span>
+        <span style="color:#21262d;">|</span>
+        <span>🏭 {total_machines} machines</span>
+        <span style="color:#21262d;">|</span>
+        <span style="color:{health_color}; font-weight:700;">● Santé atelier : {health_pct}%</span>
+        <span style="color:#21262d;">|</span>
+        <span>✅ {ok_count} OK &nbsp;·&nbsp; ⚠️ {nok_count} NOK</span>
+        <span style="margin-left:auto; font-family: monospace;">📅 {now.strftime('%A %d %B %Y').capitalize()}</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── KPI Cards ──
+    tps_moyen  = df_tps['TPS (%)'].mean()
+    adv_moyen  = df_tps['ADV (%)'].mean() if df_tps['ADV (%)'].sum() > 0 else 0
+    machines_nok       = len(df_tps[df_tps['TPS (%)'] < 75])
+    total_interruptions = df['INTERRUPTIONS TIME'].sum() if 'INTERRUPTIONS TIME' in df.columns else 0
+    total_markers = len(df)
+    jours = df['DATE'].nunique() if 'DATE' in df.columns else 1
+
+    tps_color   = "#22c55e" if tps_moyen >= 75 else "#f59e0b" if tps_moyen >= 40 else "#ef4444"
+    adv_color   = "#22c55e" if adv_moyen >= 100 else "#f59e0b" if adv_moyen >= 80 else "#ef4444"
+    nok_color   = "#ef4444" if machines_nok > 0 else "#22c55e"
+    inter_color = "#f59e0b"
+    mark_color  = "#a855f7"
+
+    kpis = [
+        (f"{tps_moyen:.1f}%",            "TPS Moyen Atelier",      "Taux de productivité",  tps_color),
+        (f"{adv_moyen:.1f}%",            "ADV Moyenne",            "Adhérence au volume",   adv_color),
+        (f"{machines_nok}/{len(df_tps)}","Machines sous objectif", "< 75% TPS",             nok_color),
+        (f"{total_interruptions:.0f}",   "Total Interruptions",    "minutes cumulées",      inter_color),
+        (f"{total_markers}",             "Total Markers",          f"{jours} jours analysés", mark_color),
+    ]
+
+    cols = st.columns(5)
+    for col, (val, label, sublabel, color) in zip(cols, kpis):
+        with col:
+            st.markdown(f"""
+            <div class="kpi-card" style="--accent:{color};">
+                <div class="kpi-value">{val}</div>
+                <div class="kpi-label">{label}</div>
+                <div class="kpi-unit">{sublabel}</div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+
+    # ── Gauge + Alerts ──
+    col1, col2 = st.columns([1, 2])
+
     with col1:
-        st.markdown('<div class="section-title">📊 Pertes par Machine</div>', unsafe_allow_html=True)
-        
-        fig = go.Figure()
-        fig.add_trace(go.Bar(name='Interruptions', x=df_tps['Machine'], 
-                             y=df_tps['Interruptions (min)'], marker_color='#d62728'))
-        fig.add_trace(go.Bar(name='DT_POSIT', x=df_tps['Machine'], 
-                             y=df_tps['DT_POSIT (min)'], marker_color='#ff7f0e'))
-        fig.add_trace(go.Bar(name='ΔT Matelas', x=df_tps['Machine'], 
-                             y=df_tps['ΔT_Matelas (min)'], marker_color='#9467bd'))
-        
-        fig.update_layout(barmode='stack', height=400, yaxis_title="Minutes")
-        st.plotly_chart(fig, use_container_width=True)
-    
+        st.markdown('<div class="section-title"><span class="dot"></span> Jauge TPS Atelier</div>', unsafe_allow_html=True)
+        gauge_color = tps_color
+        fig_gauge = go.Figure(go.Indicator(
+            mode="gauge+number+delta",
+            value=tps_moyen,
+            number={'font': {'size': 42, 'color': gauge_color, 'family': 'Syne'}},
+            delta={
+                'reference': 75,
+                'increasing': {'color': "#22c55e"},
+                'decreasing': {'color': "#ef4444"},
+                'font': {'size': 14}
+            },
+            gauge={
+                'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': '#484f58', 'tickfont': {'color': '#8b949e', 'size': 10}},
+                'bar': {'color': gauge_color, 'thickness': 0.28},
+                'bgcolor': '#161b22',
+                'borderwidth': 0,
+                'steps': [
+                    {'range': [0, 40],  'color': 'rgba(239,68,68,0.15)'},
+                    {'range': [40, 75], 'color': 'rgba(245,158,11,0.12)'},
+                    {'range': [75, 100],'color': 'rgba(34,197,94,0.12)'},
+                ],
+                'threshold': {
+                    'line': {'color': "#f59e0b", 'width': 2},
+                    'thickness': 0.78,
+                    'value': 75
+                }
+            },
+            title={'text': "TPS Moyen Atelier (%)", 'font': {'size': 13, 'color': '#8b949e', 'family': 'DM Sans'}}
+        ))
+        fig_gauge.update_layout(
+            height=280,
+            margin=dict(t=40, b=20, l=20, r=20),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color='#c9d1d9'
+        )
+        st.plotly_chart(fig_gauge, use_container_width=True)
+
     with col2:
-        st.markdown('<div class="section-title">🥧 Répartition Globale</div>', unsafe_allow_html=True)
-        
-        total_int = df_tps['Interruptions (min)'].sum()
-        total_dt = df_tps['DT_POSIT (min)'].sum()
-        total_matelas = df_tps['ΔT_Matelas (min)'].sum()
-        
+        st.markdown('<div class="section-title"><span class="dot" style="background:#ef4444"></span> Alertes Machines</div>', unsafe_allow_html=True)
+
+        critiques   = df_tps[df_tps['TPS (%)'] < 40]
+        attention   = df_tps[(df_tps['TPS (%)'] >= 40) & (df_tps['TPS (%)'] < 75)]
+        ok_machines = df_tps[df_tps['TPS (%)'] >= 75]
+
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+            st.markdown("""<div style="font-size:12px;font-weight:700;color:#fca5a5;text-transform:uppercase;
+                letter-spacing:0.8px;margin-bottom:10px;">🔴 Critique</div>""", unsafe_allow_html=True)
+            if len(critiques) == 0:
+                st.markdown('<div class="alert-card-red"><div class="alert-machine" style="color:#8b949e;font-weight:400;font-size:13px;">Aucune machine</div></div>', unsafe_allow_html=True)
+            for _, r in critiques.iterrows():
+                st.markdown(f"""
+                <div class="alert-card-red">
+                    <span class="alert-badge badge-red">CRITIQUE</span>
+                    <div class="alert-machine">{r["Machine"]}</div>
+                    <div class="alert-tps">TPS : {r['TPS (%)']:.1f}% &nbsp;·&nbsp; Écart : {r['Écart (%)']:.1f}%</div>
+                </div>""", unsafe_allow_html=True)
+
+        with c2:
+            st.markdown("""<div style="font-size:12px;font-weight:700;color:#fed7aa;text-transform:uppercase;
+                letter-spacing:0.8px;margin-bottom:10px;">🟠 À surveiller</div>""", unsafe_allow_html=True)
+            if len(attention) == 0:
+                st.markdown('<div class="alert-card-orange"><div class="alert-machine" style="color:#8b949e;font-weight:400;font-size:13px;">Aucune machine</div></div>', unsafe_allow_html=True)
+            for _, r in attention.iterrows():
+                st.markdown(f"""
+                <div class="alert-card-orange">
+                    <span class="alert-badge badge-orange">ATTENTION</span>
+                    <div class="alert-machine">{r["Machine"]}</div>
+                    <div class="alert-tps">TPS : {r['TPS (%)']:.1f}% &nbsp;·&nbsp; Écart : {r['Écart (%)']:.1f}%</div>
+                </div>""", unsafe_allow_html=True)
+
+        with c3:
+            st.markdown("""<div style="font-size:12px;font-weight:700;color:#86efac;text-transform:uppercase;
+                letter-spacing:0.8px;margin-bottom:10px;">🟢 Objectif atteint</div>""", unsafe_allow_html=True)
+            if len(ok_machines) == 0:
+                st.markdown('<div class="alert-card-green"><div class="alert-machine" style="color:#8b949e;font-weight:400;font-size:13px;">Aucune machine</div></div>', unsafe_allow_html=True)
+            for _, r in ok_machines.iterrows():
+                st.markdown(f"""
+                <div class="alert-card-green">
+                    <span class="alert-badge badge-green">OK</span>
+                    <div class="alert-machine">{r["Machine"]}</div>
+                    <div class="alert-tps">TPS : {r['TPS (%)']:.1f}% &nbsp;·&nbsp; ADV : {r['ADV (%)']:.1f}%</div>
+                </div>""", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+
+    # ── Performance Summary Table ──
+    st.markdown('<div class="section-title"><span class="dot" style="background:#a855f7"></span> Résumé Performance par Machine</div>', unsafe_allow_html=True)
+
+    rows_html = ""
+    for _, r in df_tps.iterrows():
+        tps = r['TPS (%)']
+        adv = r['ADV (%)']
+        if tps >= 75:
+            pill_style = "background:rgba(34,197,94,0.18);color:#86efac;"
+            statut = "✅ OK"
+        elif tps >= 40:
+            pill_style = "background:rgba(245,158,11,0.18);color:#fde68a;"
+            statut = "⚠️ NOK"
+        else:
+            pill_style = "background:rgba(239,68,68,0.18);color:#fca5a5;"
+            statut = "🔴 CRITIQUE"
+
+        ecart = r['Écart (%)']
+        ecart_html = f'<span style="color:#22c55e;">+{ecart:.1f}%</span>' if ecart >= 0 else f'<span style="color:#ef4444;">{ecart:.1f}%</span>'
+
+        rows_html += f"""
+        <tr>
+            <td style="font-weight:600;color:#e2e8f0;font-family:Syne,sans-serif;">{r['Machine']}</td>
+            <td><span class="tps-pill" style="{pill_style}">{tps:.1f}%</span></td>
+            <td style="color:#8b949e;">75%</td>
+            <td>{ecart_html}</td>
+            <td style="color:#93c5fd;">{adv:.1f}%</td>
+            <td><span class="tps-pill" style="{pill_style}">{statut}</span></td>
+        </tr>"""
+
+    st.markdown(f"""
+    <div style="background:#161b22;border:1px solid #21262d;border-radius:12px;overflow:hidden;">
+        <table class="perf-table">
+            <thead>
+                <tr>
+                    <th>Machine</th>
+                    <th>TPS (%)</th>
+                    <th>Objectif</th>
+                    <th>Écart</th>
+                    <th>ADV (%)</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>{rows_html}</tbody>
+        </table>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ==================== PAGE 2 : TPS & PERFORMANCE ====================
+def page_tps(df, df_tps):
+    page_header("⚙️", "TPS & Performance", "Taux de Productivité Synthétique par machine")
+
+    st.markdown('<div class="section-title">📊 TPS par Machine vs Objectif (75%)</div>', unsafe_allow_html=True)
+    colors = ['#d62728' if t < 40 else '#ff7f0e' if t < 75 else '#2ca02c' for t in df_tps['TPS (%)']]
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=df_tps['Machine'], y=df_tps['TPS (%)'],
+        marker_color=colors, name='TPS Réel',
+        text=[f"{v:.1f}%" for v in df_tps['TPS (%)']], textposition='outside'
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_tps['Machine'], y=[75] * len(df_tps),
+        mode='lines', name='Objectif 75%', line=dict(color='#1f77b4', width=2, dash='dash')
+    ))
+    fig.update_layout(
+        yaxis=dict(title="TPS (%)", range=[0, 100]), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+        legend=dict(orientation="h", yanchor="bottom", y=1.02), height=400
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown('<div class="section-title">🗺️ Heatmap Cutting Time</div>', unsafe_allow_html=True)
+        if 'DATE' in df.columns:
+            pivot = df.pivot_table(values='CUTTING TIME', index='Machine', columns='DATE', aggfunc='sum', fill_value=0)
+            fig_heat = px.imshow(pivot, text_auto='.0f', aspect='auto', color_continuous_scale='Blues', title="Temps de coupe (Machine × Date)")
+            fig_heat.update_layout(height=350)
+            st.plotly_chart(fig_heat, use_container_width=True)
+
+    with col2:
+        st.markdown('<div class="section-title">📈 Évolution TPS journalier</div>', unsafe_allow_html=True)
+        if 'DATE' in df.columns:
+            tps_jour = []
+            for date in sorted(df['DATE'].unique()):
+                df_d = df[df['DATE'] == date]
+                df_tps_d = calculer_tps_adv(df_d)
+                tps_jour.append({'Date': date, 'TPS Moyen (%)': df_tps_d['TPS (%)'].mean()})
+            df_tps_jour = pd.DataFrame(tps_jour)
+            fig_evol = go.Figure()
+            fig_evol.add_trace(go.Scatter(
+                x=df_tps_jour['Date'], y=df_tps_jour['TPS Moyen (%)'], mode='lines+markers+text',
+                text=[f"{v:.1f}%" for v in df_tps_jour['TPS Moyen (%)']], textposition='top center',
+                line=dict(color='#1f77b4', width=2), marker=dict(size=8)
+            ))
+            fig_evol.add_trace(go.Scatter(
+                x=df_tps_jour['Date'], y=[75] * len(df_tps_jour), mode='lines', name='Objectif 75%', line=dict(color='red', dash='dash', width=1.5)
+            ))
+            fig_evol.update_layout(yaxis=dict(range=[0, 100], title="TPS (%)"), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=350)
+            st.plotly_chart(fig_evol, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown('<div class="section-title">🎯 Jauges TPS par Machine</div>', unsafe_allow_html=True)
+    machines = df_tps['Machine'].tolist()
+    n_cols = min(3, len(machines))
+    cols = st.columns(n_cols)
+    for i, (_, row) in enumerate(df_tps.iterrows()):
+        with cols[i % n_cols]:
+            color = "#2ca02c" if row['TPS (%)'] >= 75 else "#ff7f0e" if row['TPS (%)'] >= 40 else "#d62728"
+            fig_g = go.Figure(go.Indicator(
+                mode="gauge+number", value=row['TPS (%)'],
+                gauge={
+                    'axis': {'range': [0, 100]}, 'bar': {'color': color},
+                    'steps': [{'range': [0, 40], 'color': '#ffe0e0'}, {'range': [40, 75], 'color': '#fff3cd'}, {'range': [75, 100], 'color': '#d4edda'}],
+                    'threshold': {'line': {'color': "red", 'width': 2}, 'thickness': 0.75, 'value': 75}
+                },
+                title={'text': row['Machine']}
+            ))
+            fig_g.update_layout(height=220, margin=dict(t=50, b=10, l=20, r=20))
+            st.plotly_chart(fig_g, use_container_width=True)
+
+# ==================== PAGE 3 : ANALYSE DES PERTES ====================
+def page_pertes(df, df_tps):
+    page_header("📉", "Analyse des Pertes", "Interruptions, DT_POSIT et ΔT_Matelas par machine")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown('<div class="section-title">📊 Pertes empilées par machine</div>', unsafe_allow_html=True)
+        fig = go.Figure()
+        fig.add_trace(go.Bar(name='Interruptions', x=df_tps['Machine'], y=df_tps['Interruptions (min)'], marker_color='#d62728'))
+        fig.add_trace(go.Bar(name='DT_POSIT',      x=df_tps['Machine'], y=df_tps['DT_POSIT (min)'], marker_color='#ff7f0e'))
+        fig.add_trace(go.Bar(name='ΔT_Matelas',    x=df_tps['Machine'], y=df_tps['ΔT_Matelas (min)'], marker_color='#7f7f7f'))
+        fig.update_layout(barmode='stack', plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=380, yaxis_title="Minutes")
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        st.markdown('<div class="section-title">🥧 Répartition globale des pertes</div>', unsafe_allow_html=True)
+        t_int = df_tps['Interruptions (min)'].sum()
+        t_pos = df_tps['DT_POSIT (min)'].sum()
+        t_del = df_tps['ΔT_Matelas (min)'].sum()
         fig_pie = px.pie(
-            values=[total_int, total_dt, total_matelas],
-            names=['Interruptions', 'DT_POSIT', 'ΔT Matelas'],
-            color_discrete_sequence=['#d62728', '#ff7f0e', '#9467bd'],
-            hole=0.4
+            values=[t_int, t_pos, t_del], names=['Interruptions', 'DT_POSIT', 'ΔT_Matelas'],
+            color_discrete_sequence=['#d62728', '#ff7f0e', '#7f7f7f'], hole=0.4, title="Répartition globale"
         )
         fig_pie.update_traces(textinfo='percent+label')
-        fig_pie.update_layout(height=400)
+        fig_pie.update_layout(height=380)
         st.plotly_chart(fig_pie, use_container_width=True)
-    
-    # Pareto
+
     st.markdown("---")
-    st.markdown('<div class="section-title">📊 Diagramme de Pareto</div>', unsafe_allow_html=True)
-    
-    pareto_data = pd.DataFrame({
-        'Cause': ['Interruptions', 'DT_POSIT', 'ΔT Matelas'],
-        'Minutes': [total_int, total_dt, total_matelas]
-    }).sort_values('Minutes', ascending=False)
-    
-    pareto_data['Cumul %'] = pareto_data['Minutes'].cumsum() / pareto_data['Minutes'].sum() * 100
-    
+    st.markdown('<div class="section-title">📊 Diagramme de Pareto des Pertes</div>', unsafe_allow_html=True)
+    pareto_data = pd.DataFrame({'Source': ['Interruptions', 'ΔT_Matelas', 'DT_POSIT'], 'Total (min)': [t_int, t_del, t_pos]}).sort_values('Total (min)', ascending=False)
+    pareto_data['Cumul (%)'] = pareto_data['Total (min)'].cumsum() / pareto_data['Total (min)'].sum() * 100
+
     fig_pareto = go.Figure()
-    
     fig_pareto.add_trace(go.Bar(
-        x=pareto_data['Cause'],
-        y=pareto_data['Minutes'],
-        name='Minutes',
-        marker_color='#1f77b4',
-        text=pareto_data['Minutes'].apply(lambda x: f"{x:.0f} min"),
-        textposition='outside'
+        x=pareto_data['Source'], y=pareto_data['Total (min)'], marker_color=['#d62728', '#ff7f0e', '#7f7f7f'], name='Durée (min)',
+        text=[f"{v:.0f} min" for v in pareto_data['Total (min)']], textposition='outside'
     ))
-    
     fig_pareto.add_trace(go.Scatter(
-        x=pareto_data['Cause'],
-        y=pareto_data['Cumul %'],
-        name='Cumul (%)',
-        yaxis='y2',
-        mode='lines+markers',
-        line=dict(color='#d62728', width=2),
-        marker=dict(size=10)
+        x=pareto_data['Source'], y=pareto_data['Cumul (%)'], mode='lines+markers+text',
+        text=[f"{v:.1f}%" for v in pareto_data['Cumul (%)']], textposition='top center', name='Cumul (%)', yaxis='y2',
+        line=dict(color='#1f77b4', width=2), marker=dict(size=8)
     ))
-    
-    fig_pareto.add_hline(y=80, line_dash="dash", line_color="green", 
-                         annotation_text="80%", yref='y2')
-    
+    fig_pareto.add_hline(y=80, line_dash="dash", line_color="red", annotation_text="80%", yref='y2')
     fig_pareto.update_layout(
-        yaxis=dict(title="Minutes"),
-        yaxis2=dict(title="Cumul (%)", overlaying='y', side='right', range=[0, 110]),
-        height=450
+        yaxis=dict(title="Durée (minutes)"), yaxis2=dict(title="Cumul (%)", overlaying='y', side='right', range=[0, 110]),
+        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', legend=dict(orientation="h", yanchor="bottom", y=1.02), height=400
     )
-    
     st.plotly_chart(fig_pareto, use_container_width=True)
 
-# ==================== PAGE ADV ====================
+    st.markdown("---")
+    st.markdown('<div class="section-title">🥧 Répartition des pertes par machine</div>', unsafe_allow_html=True)
+    machines = df_tps['Machine'].tolist()
+    n_cols = min(3, len(machines))
+    cols_pie = st.columns(n_cols)
+    for i, (_, row) in enumerate(df_tps.iterrows()):
+        with cols_pie[i % n_cols]:
+            fig_m = px.pie(
+                values=[row['Interruptions (min)'], row['DT_POSIT (min)'], row['ΔT_Matelas (min)']],
+                names=['Interruptions', 'DT_POSIT', 'ΔT_Matelas'], title=row['Machine'],
+                color_discrete_sequence=['#d62728', '#ff7f0e', '#7f7f7f'], hole=0.35
+            )
+            fig_m.update_traces(textinfo='percent')
+            fig_m.update_layout(height=280, margin=dict(t=40, b=10, l=10, r=10), showlegend=False)
+            st.plotly_chart(fig_m, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown('<div class="section-title">📋 Tableau détaillé des pertes</div>', unsafe_allow_html=True)
+    cols_pertes = ['Machine', 'Interruptions (min)', 'DT_POSIT (min)', 'ΔT_Matelas (min)', 'Cutting (min)', 'TPS (%)']
+    st.dataframe(df_tps[cols_pertes], use_container_width=True, hide_index=True)
+
+# ==================== PAGE 4 : ADV PRODUCTION ====================
 def page_adv(df, df_tps):
-    page_header("📦", "ADV Production", "Adhérence au Volume de Production")
-    
-    if df_tps.empty:
-        st.warning("Aucune donnée disponible")
+    page_header("📦", "ADV — Adhérence au Volume de Production", "Suivi journalier de la production réalisée vs planifiée")
+
+    if 'DATE' not in df.columns or 'ADV' not in df.columns:
+        st.warning("⚠️ Colonnes DATE ou ADV non disponibles dans les données.")
         return
-    
-    # KPIs ADV
-    adv_moyen = df_tps['ADV (%)'].mean()
-    adv_min = df_tps['ADV (%)'].min()
-    adv_max = df_tps['ADV (%)'].max()
-    machines_sous_objectif = len(df_tps[df_tps['ADV (%)'] < 100])
-    
+
+    df_adv = df.groupby('DATE').apply(lambda x: pd.to_numeric(x['ADV'], errors='coerce').mean() * 100).reset_index()
+    df_adv.columns = ['DATE', 'ADV (%)']
+    df_adv = df_adv.dropna()
+
+    adv_moy = df_adv['ADV (%)'].mean()
+    adv_min = df_adv['ADV (%)'].min()
+    adv_max = df_adv['ADV (%)'].max()
+    jours_nok = len(df_adv[df_adv['ADV (%)'] < 100])
+
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("📊 ADV Moyenne", f"{adv_moyen:.1f}%")
-    col2.metric("📈 ADV Maximale", f"{adv_max:.1f}%")
-    col3.metric("📉 ADV Minimale", f"{adv_min:.1f}%")
-    col4.metric("⚠️ Sous objectif", f"{machines_sous_objectif}/{len(df_tps)}")
-    
+    for col, val, label, color in [
+        (col1, f"{adv_moy:.1f}%",  "📊 ADV Moyenne",       "#1f77b4"),
+        (col2, f"{adv_min:.1f}%",  "📉 ADV Minimale",      "#d62728"),
+        (col3, f"{adv_max:.1f}%",  "📈 ADV Maximale",      "#2ca02c"),
+        (col4, f"{jours_nok}j",    "❌ Jours sous objectif","#ff7f0e"),
+    ]:
+        with col:
+            st.markdown(f"""
+            <div class="kpi-card" style="border-left-color:{color};">
+                <div class="kpi-value" style="color:{color};">{val}</div>
+                <div class="kpi-label">{label}</div>
+            </div>""", unsafe_allow_html=True)
+
     st.markdown("---")
-    
-    # Graphique ADV par machine
+    st.markdown('<div class="section-title">📊 ADV journalière vs Objectif (100%)</div>', unsafe_allow_html=True)
+    colors_adv = ['#2ca02c' if v >= 100 else '#d62728' for v in df_adv['ADV (%)']]
+    fig_adv = go.Figure()
+    fig_adv.add_trace(go.Bar(
+        x=df_adv['DATE'], y=df_adv['ADV (%)'], marker_color=colors_adv, name='ADV Réelle',
+        text=[f"{v:.1f}%" for v in df_adv['ADV (%)']], textposition='outside'
+    ))
+    fig_adv.add_trace(go.Scatter(x=df_adv['DATE'], y=[100] * len(df_adv), mode='lines', name='Objectif 100%', line=dict(color='#ff7f0e', width=2, dash='dash')))
+    fig_adv.update_layout(yaxis=dict(title="ADV (%)", range=[0, 120]), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=380)
+    st.plotly_chart(fig_adv, use_container_width=True)
+
+    st.markdown("---")
     st.markdown('<div class="section-title">🏭 ADV par Machine</div>', unsafe_allow_html=True)
-    
-    colors_adv = ['#2ca02c' if x >= 100 else '#d62728' for x in df_tps['ADV (%)']]
-    
-    fig = go.Figure(data=[
-        go.Bar(x=df_tps['Machine'], y=df_tps['ADV (%)'], 
-               marker_color=colors_adv,
-               text=df_tps['ADV (%)'].apply(lambda x: f"{x:.1f}%"),
-               textposition='outside')
-    ])
-    
-    fig.add_hline(y=100, line_dash="dash", line_color="orange", 
-                  annotation_text="Objectif 100%")
-    
-    fig.update_layout(height=450, yaxis_title="ADV (%)", yaxis_range=[0, 130])
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Tableau ADV
-    st.markdown("---")
-    st.markdown('<div class="section-title">📋 Détail ADV</div>', unsafe_allow_html=True)
-    st.dataframe(df_tps[['Machine', 'ADV (%)', 'TPS (%)', 'Statut']], 
-                 use_container_width=True, hide_index=True)
+    df_adv_m = df_tps[df_tps['ADV (%)'] > 0][['Machine', 'ADV (%)']]
+    if not df_adv_m.empty:
+        colors_m = ['#2ca02c' if v >= 100 else '#d62728' for v in df_adv_m['ADV (%)']]
+        fig_adv_m = go.Figure(go.Bar(
+            x=df_adv_m['Machine'], y=df_adv_m['ADV (%)'], marker_color=colors_m,
+            text=[f"{v:.1f}%" for v in df_adv_m['ADV (%)']], textposition='outside'
+        ))
+        fig_adv_m.add_hline(y=100, line_dash="dash", line_color="orange", annotation_text="Objectif 100%")
+        fig_adv_m.update_layout(yaxis=dict(range=[0, 120], title="ADV (%)"), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=350)
+        st.plotly_chart(fig_adv_m, use_container_width=True)
+    else:
+        st.info("Pas de données ADV par machine disponibles.")
 
-# ==================== PAGE MACHINE ====================
+# ==================== PAGE 5 : ANALYSE PAR MACHINE ====================
 def page_machine(df, df_tps):
-    page_header("🔍", "Analyse par Machine", "Détail complet par machine")
-    
-    if df.empty or df_tps.empty:
-        st.warning("Aucune donnée disponible")
-        return
-    
-    machine_selection = st.selectbox("🏭 Sélectionner une machine", sorted(df['Machine'].unique()))
-    
-    df_machine = df[df['Machine'] == machine_selection]
-    df_tps_machine = df_tps[df_tps['Machine'] == machine_selection].iloc[0]
-    
-    # KPIs machine
-    col1, col2, col3, col4 = st.columns(4)
-    
-    tps_color = "🟢" if df_tps_machine['TPS (%)'] >= 75 else "🟠" if df_tps_machine['TPS (%)'] >= 40 else "🔴"
-    
-    col1.metric("⚙️ TPS", f"{df_tps_machine['TPS (%)']:.1f}%", 
-                delta=f"{df_tps_machine['Écart (%)']:.1f}%")
-    col2.metric("📦 ADV", f"{df_tps_machine['ADV (%)']:.1f}%")
-    col3.metric("⏱️ Temps de coupe", f"{df_tps_machine['Cutting (min)']:.0f} min")
-    col4.metric("⚠️ Interruptions", f"{df_tps_machine['Interruptions (min)']:.0f} min")
-    
-    st.markdown("---")
-    
-    # Évolution temporelle
-    if 'DATE' in df_machine.columns:
-        st.markdown('<div class="section-title">📈 Évolution Temporelle</div>', unsafe_allow_html=True)
-        
-        evol_data = df_machine.groupby('DATE').agg({
-            'CUTTING TIME': 'sum',
-            'INTERRUPTIONS TIME': 'sum'
-        }).reset_index()
-        
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=evol_data['DATE'], y=evol_data['CUTTING TIME'], 
-                                 name='Temps de coupe', mode='lines+markers',
-                                 line=dict(color='#2ca02c', width=2)))
-        fig.add_trace(go.Scatter(x=evol_data['DATE'], y=evol_data['INTERRUPTIONS TIME'],
-                                 name='Interruptions', mode='lines+markers',
-                                 line=dict(color='#d62728', width=2)))
-        
-        fig.update_layout(height=400, yaxis_title="Minutes")
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # Données détaillées
-    st.markdown("---")
-    st.markdown('<div class="section-title">📋 Données Détaillées</div>', unsafe_allow_html=True)
-    
-    cols_affichage = [c for c in ['DATE', 'Marker', 'CUTTING TIME', 'INTERRUPTIONS TIME', 'STATE'] 
-                      if c in df_machine.columns]
-    st.dataframe(df_machine[cols_affichage], use_container_width=True, hide_index=True)
+    page_header("🔍", "Analyse Détaillée par Machine", "Sélectionnez une machine pour voir son analyse complète")
 
-# ==================== PAGE DONNÉES BRUTES ====================
+    machine_selectionnee = st.selectbox("🏭 Choisir une machine :", sorted(df['Machine'].unique()))
+    df_m = df[df['Machine'] == machine_selectionnee]
+    df_tps_m = df_tps[df_tps['Machine'] == machine_selectionnee].iloc[0]
+
+    st.markdown("---")
+    col1, col2, col3, col4 = st.columns(4)
+    tps_val = df_tps_m['TPS (%)']
+    color_tps = "#2ca02c" if tps_val >= 75 else "#ff7f0e" if tps_val >= 40 else "#d62728"
+    for col, val, label, color in [
+        (col1, f"{tps_val:.1f}%",              "⚙️ TPS",             color_tps),
+        (col2, f"{df_tps_m['Interruptions (min)']:.0f} min", "⚠️ Interruptions", "#d62728"),
+        (col3, f"{df_tps_m['DT_POSIT (min)']:.0f} min",     "📍 DT_POSIT",      "#ff7f0e"),
+        (col4, f"{df_tps_m['ΔT_Matelas (min)']:.0f} min",   "🔄 ΔT_Matelas",    "#7f7f7f"),
+    ]:
+        with col:
+            st.markdown(f"""
+            <div class="kpi-card" style="border-left-color:{color};">
+                <div class="kpi-value" style="color:{color};">{val}</div>
+                <div class="kpi-label">{label}</div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("---")
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        st.markdown(f'<div class="section-title">🎯 Jauge TPS — {machine_selectionnee}</div>', unsafe_allow_html=True)
+        fig_g = go.Figure(go.Indicator(
+            mode="gauge+number+delta", value=tps_val, delta={'reference': 75},
+            gauge={
+                'axis': {'range': [0, 100]}, 'bar': {'color': color_tps},
+                'steps': [{'range': [0, 40], 'color': '#ffe0e0'}, {'range': [40, 75], 'color': '#fff3cd'}, {'range': [75, 100], 'color': '#d4edda'}],
+                'threshold': {'line': {'color': "red", 'width': 3}, 'thickness': 0.75, 'value': 75}
+            },
+            title={'text': f"TPS {machine_selectionnee} (%)"}
+        ))
+        fig_g.update_layout(height=280, margin=dict(t=40, b=10, l=20, r=20))
+        st.plotly_chart(fig_g, use_container_width=True)
+
+    with col2:
+        st.markdown(f'<div class="section-title">🥧 Répartition des pertes — {machine_selectionnee}</div>', unsafe_allow_html=True)
+        fig_pie = px.pie(
+            values=[df_tps_m['Interruptions (min)'], df_tps_m['DT_POSIT (min)'], df_tps_m['ΔT_Matelas (min)']],
+            names=['Interruptions', 'DT_POSIT', 'ΔT_Matelas'], color_discrete_sequence=['#d62728', '#ff7f0e', '#7f7f7f'], hole=0.4
+        )
+        fig_pie.update_traces(textinfo='percent+label')
+        fig_pie.update_layout(height=280, margin=dict(t=20, b=10))
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+    st.markdown("---")
+    if 'DATE' in df_m.columns:
+        st.markdown(f'<div class="section-title">📈 Évolution journalière — {machine_selectionnee}</div>', unsafe_allow_html=True)
+        evol = df_m.groupby('DATE')['CUTTING TIME'].sum().reset_index()
+        fig_evol = px.line(evol, x='DATE', y='CUTTING TIME', markers=True, title=f"Temps de coupe journalier — {machine_selectionnee}")
+        fig_evol.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=300)
+        st.plotly_chart(fig_evol, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown(f'<div class="section-title">📋 Données — {machine_selectionnee}</div>', unsafe_allow_html=True)
+    cols_show = [c for c in ['DATE', 'Marker', 'CUTTING TIME', 'INTERRUPTIONS TIME', 'POSIT/Marker', 'ΔT_Matelas', 'STATE'] if c in df_m.columns]
+    st.dataframe(df_m[cols_show], use_container_width=True, hide_index=True)
+
+# ==================== PAGE 6 : DONNÉES BRUTES ====================
 def page_donnees(df, df_tps):
-    page_header("📋", "Données Brutes", "Export et analyse des données")
-    
-    if df.empty:
-        st.warning("Aucune donnée disponible")
-        return
-    
-    # Filtres
-    col1, col2 = st.columns(2)
-    
+    page_header("📋", "Données Brutes", "Tableau complet avec filtres et export")
+
+    col1, col2, col3 = st.columns(3)
     with col1:
         machines = ['Toutes'] + sorted(df['Machine'].unique().tolist())
-        filtre_machine = st.selectbox("🏭 Filtrer par machine", machines)
-    
+        filtre_machine = st.selectbox("🏭 Machine", machines)
     with col2:
         if 'DATE' in df.columns:
-            dates = ['Toutes'] + sorted(df['DATE'].dt.strftime('%Y-%m-%d').unique().tolist(), reverse=True)
-            filtre_date = st.selectbox("📅 Filtrer par date", dates)
+            dates = ['Toutes'] + sorted(df['DATE'].unique().tolist(), reverse=True)
+            filtre_date = st.selectbox("📅 Date", dates)
         else:
             filtre_date = 'Toutes'
-    
-    # Application filtres
-    df_filtre = df.copy()
-    if filtre_machine != 'Toutes':
-        df_filtre = df_filtre[df_filtre['Machine'] == filtre_machine]
-    if filtre_date != 'Toutes' and 'DATE' in df.columns:
-        df_filtre = df_filtre[df_filtre['DATE'].dt.strftime('%Y-%m-%d') == filtre_date]
-    
-    st.info(f"📊 **{len(df_filtre)} lignes** affichées sur {len(df)} total")
-    
-    # Affichage des données
-    cols_affichage = [c for c in ['DATE', 'Machine', 'Marker', 'CUTTING TIME', 
-                                   'INTERRUPTIONS TIME', 'TPS Shift', 'ADV', 'STATE'] 
-                      if c in df_filtre.columns]
-    
-    if st.session_state.role == "admin":
-        st.caption("✏️ Mode édition - Double-cliquez pour modifier")
-        st.data_editor(df_filtre[cols_affichage], use_container_width=True, hide_index=True)
-    else:
-        st.dataframe(df_filtre[cols_affichage], use_container_width=True, hide_index=True)
-    
-    # Export
+    with col3:
+        if 'STATE' in df.columns:
+            states = ['Tous'] + sorted(df['STATE'].dropna().unique().tolist())
+            filtre_state = st.selectbox("⚙️ Statut", states)
+        else:
+            filtre_state = 'Tous'
+
+    df_f = df.copy()
+    if filtre_machine != 'Toutes': df_f = df_f[df_f['Machine'] == filtre_machine]
+    if filtre_date   != 'Toutes' and 'DATE' in df_f.columns: df_f = df_f[df_f['DATE'] == filtre_date]
+    if filtre_state  != 'Tous'   and 'STATE' in df_f.columns: df_f = df_f[df_f['STATE'] == filtre_state]
+
+    st.info(f"📊 **{len(df_f)} lignes** affichées sur {len(df)} total")
     st.markdown("---")
-    st.markdown('<div class="section-title">📥 Export des données</div>', unsafe_allow_html=True)
-    
+
+    cols_show = [c for c in ['DATE', 'Machine', 'Marker', 'CUTTING TIME', 'INTERRUPTIONS TIME', 'POSIT/Marker', 'ΔT_Matelas', 'STATE'] if c in df_f.columns]
+    if st.session_state.role == "admin":
+        st.caption("✏️ Mode édition — double-cliquez pour modifier")
+        st.data_editor(df_f[cols_show], use_container_width=True, hide_index=True)
+    else:
+        st.dataframe(df_f[cols_show], use_container_width=True, hide_index=True)
+
+    st.markdown("---")
+    st.markdown('<div class="section-title">📥 Export</div>', unsafe_allow_html=True)
     col1, col2 = st.columns(2)
-    
     with col1:
-        csv_data = df_filtre.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            "📎 Exporter données filtrées (CSV)",
-            data=csv_data,
-            file_name=f"lectra_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-    
+        st.download_button("📎 Exporter données filtrées (CSV)", data=df_f.to_csv(index=False).encode('utf-8'), file_name=f"lectra_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", mime="text/csv", use_container_width=True)
     with col2:
-        csv_tps = df_tps.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            "📊 Exporter TPS/ADV (CSV)",
-            data=csv_tps,
-            file_name=f"tps_adv_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
+        st.download_button("📊 Exporter tableau TPS/ADV (CSV)", data=df_tps.to_csv(index=False).encode('utf-8'), file_name=f"tps_adv_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", mime="text/csv", use_container_width=True)
 
 # ==================== MAIN ====================
 def main():
-    """Fonction principale"""
-    
     if not verifier_mot_de_passe():
         return
-    
+
     sidebar_navigation()
-    
-    # Chargement des données
-    with st.spinner("Chargement des données..."):
-        df = charger_donnees()
-    
+
+    df = charger_donnees()
     if df is None or df.empty:
-        st.error("❌ Impossible de charger les données. Vérifiez le fichier Excel.")
+        st.warning("⚠️ Aucune donnée trouvée. Vérifiez le fichier modele_lectra.xlsx")
         st.stop()
-    
+
     df_tps = calculer_tps_adv(df)
-    
-    # Navigation
-    page = st.session_state.get('page_active', '🏠 Accueil')
-    
-    if page == "🏠 Accueil":
-        page_accueil(df, df_tps)
-    elif page == "⚙️ TPS & Performance":
-        page_tps(df, df_tps)
-    elif page == "📉 Analyse des Pertes":
-        page_pertes(df, df_tps)
-    elif page == "📦 ADV Production":
-        page_adv(df, df_tps)
-    elif page == "🔍 Analyse par Machine":
-        page_machine(df, df_tps)
-    elif page == "📋 Données Brutes":
-        page_donnees(df, df_tps)
-    
-    # Footer
+    page = st.session_state.get('page_active', 'Accueil')
+
+    if page == "Accueil": page_accueil(df, df_tps)
+    elif page == "TPS & Performance": page_tps(df, df_tps)
+    elif page == "Analyse des Pertes": page_pertes(df, df_tps)
+    elif page == "ADV Production": page_adv(df, df_tps)
+    elif page == "Analyse par Machine": page_machine(df, df_tps)
+    elif page == "Données Brutes": page_donnees(df, df_tps)
+
     st.markdown("---")
     st.markdown("""
-    <p style='text-align:center; color:#888; font-size:12px;'>
-        🏭 Adient Morocco — LECTRA Dashboard v4.0 | Projet PFE 2025 | Tiflet
-    </p>
+    <div style='text-align:center; color:#484f58; font-size:11px; padding:20px 0 10px; letter-spacing:0.5px;'>
+        🏭 Adient Morocco — LECTRA Dashboard v4.0 &nbsp;|&nbsp; Projet PFE 2025 &nbsp;|&nbsp; Tiflet
+    </div>
     """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
