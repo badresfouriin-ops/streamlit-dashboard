@@ -6,7 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 import requests
-import base64  # Import indispensable pour l'encodage de l'image d'arrière-plan
+import base64
 
 # ==================== CONFIGURATION ====================
 st.set_page_config(
@@ -23,8 +23,8 @@ st.markdown("""
 
     /* ── Global Dark Theme ── */
     html, body, .main {
-    color: #e2e8f0 !important;
-}
+        color: #e2e8f0 !important;
+    }
     [data-testid="stHeader"] { background-color: #0d1117 !important; }
     .block-container { padding-top: 1.5rem !important; }
 
@@ -239,7 +239,6 @@ def verifier_mot_de_passe():
     if st.session_state.authentifie:
         return True
 
-# ==================== IMAGE DE FOND ====================
     bg_image_path = "background.png"
 
     if os.path.exists(bg_image_path):
@@ -261,7 +260,6 @@ def verifier_mot_de_passe():
     st.markdown(
         f"""
         <style>
-
         /* Masquer les éléments Streamlit */
         [data-testid="stHeader"],
         [data-testid="stToolbar"],
@@ -326,17 +324,14 @@ def verifier_mot_de_passe():
         div[data-testid="column"] {{
             gap: 0px !important;
         }}
-
         </style>
         """,
         unsafe_allow_html=True
     )
 
-    # Centrer le panneau blanc
     col1, col2, col3 = st.columns([1, 2, 1])
 
     with col2:
-        # Panneau blanc unique avec tout le contenu
         st.markdown("""
         <div style="
             background: white;
@@ -349,7 +344,6 @@ def verifier_mot_de_passe():
             z-index: 10;
             text-align: center;
         ">
-            <!-- Logo ADIENT -->
             <div style="font-size: 24px; font-weight: 800; color: #00334e; margin-bottom: 10px;">
                 <span style="color: #9cc31a;">/</span>ADIENT
             </div>
@@ -362,21 +356,18 @@ def verifier_mot_de_passe():
             <div style="height: 1px; background: linear-gradient(90deg, transparent, #9cc31a, transparent); margin-bottom: 20px;"></div>
         """, unsafe_allow_html=True)
 
-        # Formulaire de connexion compact
         st.markdown("<p style='text-align: left; font-size: 12px; font-weight: 600; color: #333; margin-bottom: 4px;'>👤 Nom d'utilisateur</p>", unsafe_allow_html=True)
         username = st.text_input("", placeholder="Entrez votre nom d'utilisateur", key="login_user", label_visibility="collapsed")
 
         st.markdown("<p style='text-align: left; font-size: 12px; font-weight: 600; color: #333; margin-top: 10px; margin-bottom: 4px;'>🔐 Mot de passe</p>", unsafe_allow_html=True)
         password = st.text_input("", type="password", placeholder="Entrez votre mot de passe", key="login_pwd", label_visibility="collapsed")
 
-        # Deux colonnes pour checkbox et lien
         col_check, col_forgot = st.columns([1, 1])
         with col_check:
             st.checkbox("Se souvenir de moi")
         with col_forgot:
             st.markdown("<div style='text-align: right; padding-top: 3px;'><a href='#' style='color: #9cc31a; font-size: 11px; text-decoration: none;'>Mot de passe oublié ?</a></div>", unsafe_allow_html=True)
 
-        # Bouton de connexion
         if st.button("🔓 SE CONNECTER", use_container_width=True):
             if password in USERS:
                 st.session_state.authentifie = True
@@ -386,12 +377,10 @@ def verifier_mot_de_passe():
             elif password:
                 st.error("❌ Identifiants incorrects")
 
-        # Séparateur
         st.markdown("""
             <div style="height: 1px; background: linear-gradient(90deg, transparent, #9cc31a, transparent); margin: 20px 0 15px 0;"></div>
         """, unsafe_allow_html=True)
 
-        # Texte ADIENT MOROCCO et indicateurs dans le même panneau
         st.markdown("""
             <div style="text-align: center;">
                 <p style="color: #00334e; font-size: 11px; font-weight: 700; letter-spacing: 2px; margin-bottom: 12px;">
@@ -414,7 +403,6 @@ def verifier_mot_de_passe():
             </div>
         """, unsafe_allow_html=True)
 
-        # Pied de page sécurisé
         st.markdown("""
             <div style="text-align: center; margin-top: 18px; padding-top: 12px; border-top: 1px solid #eee;">
                 <span style="color: #9cc31a;">🛡️</span>
@@ -424,7 +412,6 @@ def verifier_mot_de_passe():
         """, unsafe_allow_html=True)
 
     return False
-
 
 # ==================== SIDEBAR NAVIGATION ====================
 def sidebar_navigation():
@@ -486,8 +473,48 @@ def sidebar_navigation():
             st.session_state.authentifie = False
             st.rerun()
 
+# ==================== GENERATION DONNEES DEMO ====================
+def generer_donnees_demo():
+    machines = [f"L{i:02d}" for i in range(1, 21)]
+    dates = pd.date_range(start='2025-06-01', end='2025-06-07', freq='D')
+    
+    data_rows = []
+    for machine in machines:
+        for date in dates:
+            for shift in range(1, 4):
+                tps = np.random.uniform(45, 95)
+                adv = np.random.uniform(50, 110)
+                cutting_time = np.random.uniform(120, 300)
+                interruptions = np.random.uniform(10, 60)
+                coda = np.random.uniform(0, 100)
+                dt_matelas = np.random.uniform(5, 30)
+                dt_posit = np.random.uniform(0, 50)
+                posit_marker = np.random.uniform(0, 15)
+                
+                data_rows.append({
+                    'DATE': date,
+                    'Machine': machine,
+                    'Shift': shift,
+                    'TPS Shift': tps,
+                    'ADV': adv,
+                    'CUTTING TIME': cutting_time,
+                    'INTERRUPTIONS TIME': interruptions,
+                    'CODA INTERRUPTIONS TIME': coda,
+                    'ΔT_Matelas': dt_matelas,
+                    'DT_POSIT (min)': dt_posit,
+                    'POSIT/Marker': posit_marker,
+                    'Marker': f"MKR_{machine}_{date.day}_{shift}",
+                    'STATE': np.random.choice(['En production', 'Maintenance', 'Panne', 'Arrêt'], p=[0.7, 0.1, 0.1, 0.1])
+                })
+    
+    df = pd.DataFrame(data_rows)
+    return df
+
 # ==================== UTILITAIRES ====================
 def time_to_minutes(val):
+    """Convertit un format HH:MM:SS ou HH:MM en minutes"""
+    if pd.isna(val):
+        return 0
     if isinstance(val, str) and ':' in val:
         parts = val.strip().split(':')
         try:
@@ -497,7 +524,7 @@ def time_to_minutes(val):
                 return int(parts[0]) * 60 + int(parts[1])
         except:
             return 0
-    elif isinstance(val, (int, float)) and not pd.isna(val):
+    elif isinstance(val, (int, float)):
         return float(val)
     return 0
 
@@ -515,10 +542,46 @@ def charger_donnees():
             if df is not None and not df.empty:
                 df['Machine'] = sheet_name
                 
-                cols_to_convert = ['TPS Shift', 'ADV', 'CUTTING TIME', 'INTERRUPTIONS TIME', 'DWN TIME', 'ΔT_Matelas']
+                # Colonnes numériques standard
+                cols_to_convert = ['TPS Shift', 'ADV', 'CUTTING TIME', 'INTERRUPTIONS TIME', 'DWN TIME']
+                
                 for col in cols_to_convert:
                     if col in df.columns:
                         df[col] = pd.to_numeric(df[col], errors='coerce')
+                
+                # Traitement pour DT_POSIT
+                if 'DT_POSIT (min)' in df.columns:
+                    df['DT_POSIT (min)'] = pd.to_numeric(df['DT_POSIT (min)'], errors='coerce')
+                elif 'DT_POSIT' in df.columns:
+                    df['DT_POSIT (min)'] = pd.to_numeric(df['DT_POSIT'], errors='coerce')
+                elif 'DT_POSIT(min)' in df.columns:
+                    df['DT_POSIT (min)'] = pd.to_numeric(df['DT_POSIT(min)'], errors='coerce')
+                else:
+                    df['DT_POSIT (min)'] = 0
+                
+                # Traitement pour CODA
+                if 'CODA INTERRUPTIONS TIME' in df.columns:
+                    df['CODA INTERRUPTIONS TIME'] = pd.to_numeric(df['CODA INTERRUPTIONS TIME'], errors='coerce')
+                elif 'CODA INTERRUPTION' in df.columns:
+                    df['CODA INTERRUPTIONS TIME'] = pd.to_numeric(df['CODA INTERRUPTION'], errors='coerce')
+                else:
+                    df['CODA INTERRUPTIONS TIME'] = 0
+                
+                # Traitement pour POSIT/Marker (format HH:MM:SS)
+                if 'POSIT/Marker' in df.columns:
+                    df['POSIT/Marker'] = df['POSIT/Marker'].apply(lambda x: time_to_minutes(x))
+                elif 'POSIT/Mar' in df.columns:
+                    df['POSIT/Marker'] = df['POSIT/Mar'].apply(lambda x: time_to_minutes(x))
+                else:
+                    df['POSIT/Marker'] = 0
+                
+                # Traitement pour ΔT_Matelas (format HH:MM:SS)
+                if 'ΔT_Matelas' in df.columns:
+                    df['ΔT_Matelas'] = df['ΔT_Matelas'].apply(lambda x: time_to_minutes(x))
+                elif 'AT_Matel' in df.columns:
+                    df['ΔT_Matelas'] = df['AT_Matel'].apply(lambda x: time_to_minutes(x))
+                else:
+                    df['ΔT_Matelas'] = 0
                 
                 if 'DATE' in df.columns:
                     df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
@@ -526,11 +589,13 @@ def charger_donnees():
                 dataframes.append(df)
         
         if dataframes:
-            return pd.concat(dataframes, ignore_index=True)
+            df_combined = pd.concat(dataframes, ignore_index=True)
+            return df_combined
         else:
             return generer_donnees_demo()
             
     except Exception as e:
+        st.warning(f"Erreur lors du chargement: {e}")
         return generer_donnees_demo()
 
 def calculer_tps_adv(df):
@@ -554,6 +619,10 @@ def calculer_tps_adv(df):
         dwn_time = df_m['DWN TIME'].fillna(0).sum() if 'DWN TIME' in df_m.columns else 0
         dt_matelas = df_m['ΔT_Matelas'].fillna(0).sum() if 'ΔT_Matelas' in df_m.columns else 0
         
+        coda = df_m['CODA INTERRUPTIONS TIME'].fillna(0).sum() if 'CODA INTERRUPTIONS TIME' in df_m.columns else 0
+        posit_marker = df_m['POSIT/Marker'].fillna(0).sum() if 'POSIT/Marker' in df_m.columns else 0
+        dt_posit = df_m['DT_POSIT (min)'].fillna(0).sum() if 'DT_POSIT (min)' in df_m.columns else 0
+        
         resultats.append({
             'Machine': machine,
             'TPS (%)': round(tps_moyen, 1),
@@ -564,10 +633,14 @@ def calculer_tps_adv(df):
             'Interruptions (min)': round(interruptions, 1),
             'DWN TIME (min)': round(dwn_time, 1),
             'ΔT_Matelas (min)': round(dt_matelas, 1),
+            'DT_POSIT (min)': round(dt_posit, 1),
+            'CODA (min)': round(coda, 1),
+            'POSIT/Marker': round(posit_marker, 1),
             'Statut': "✅ OK" if tps_moyen >= 75 else "⚠️ NOK"
         })
     
     return pd.DataFrame(resultats)
+
 def page_header(icon, titre, sous_titre, badge=None):
     badge_html = f'<span class="header-badge">{badge}</span>' if badge else ''
     st.markdown(f"""
@@ -587,7 +660,6 @@ def page_accueil(df, df_tps):
         badge=f"Mis à jour : {now.strftime('%d/%m/%Y %H:%M')}"
     )
 
-    # ── Status bar ──
     total_machines = len(df_tps)
     ok_count   = len(df_tps[df_tps['TPS (%)'] >= 75])
     nok_count  = total_machines - ok_count
@@ -607,11 +679,13 @@ def page_accueil(df, df_tps):
     </div>
     """, unsafe_allow_html=True)
 
-    # ── KPI Cards ──
     tps_moyen  = df_tps['TPS (%)'].mean()
     adv_moyen  = df_tps['ADV (%)'].mean() if df_tps['ADV (%)'].sum() > 0 else 0
-    machines_nok       = len(df_tps[df_tps['TPS (%)'] < 75])
+    machines_nok = len(df_tps[df_tps['TPS (%)'] < 75])
     total_interruptions = df['INTERRUPTIONS TIME'].sum() if 'INTERRUPTIONS TIME' in df.columns else 0
+    total_coda = df['CODA INTERRUPTIONS TIME'].sum() if 'CODA INTERRUPTIONS TIME' in df.columns else 0
+    total_dt_posit = df['DT_POSIT (min)'].sum() if 'DT_POSIT (min)' in df.columns else 0
+    total_dt_matelas = df['ΔT_Matelas'].sum() if 'ΔT_Matelas' in df.columns else 0
     total_markers = len(df)
     jours = df['DATE'].nunique() if 'DATE' in df.columns else 1
 
@@ -641,7 +715,6 @@ def page_accueil(df, df_tps):
 
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
-    # ── Gauge + Alerts ──
     col1, col2 = st.columns([1, 2])
 
     with col1:
@@ -734,7 +807,6 @@ def page_accueil(df, df_tps):
 
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
-    # ── Performance Summary Table ──
     st.markdown('<div class="section-title"><span class="dot" style="background:#a855f7"></span> Résumé Performance par Machine</div>', unsafe_allow_html=True)
 
     rows_html = ""
@@ -858,39 +930,52 @@ def page_tps(df, df_tps):
 
 # ==================== PAGE 3 : ANALYSE DES PERTES ====================
 def page_pertes(df, df_tps):
-    page_header("📉", "Analyse des Pertes", "Interruptions, DT_POSIT et ΔT_Matelas par machine")
+    page_header("📉", "Analyse des Pertes", "Interruptions, CODA, DT_POSIT, POSIT/Marker et ΔT_Matelas par machine")
 
     col1, col2 = st.columns(2)
     with col1:
         st.markdown('<div class="section-title">📊 Pertes empilées par machine</div>', unsafe_allow_html=True)
         fig = go.Figure()
         fig.add_trace(go.Bar(name='Interruptions', x=df_tps['Machine'], y=df_tps['Interruptions (min)'], marker_color='#d62728'))
-        fig.add_trace(go.Bar(name='DT_POSIT',      x=df_tps['Machine'], y=df_tps['DT_POSIT (min)'], marker_color='#ff7f0e'))
-        fig.add_trace(go.Bar(name='ΔT_Matelas',    x=df_tps['Machine'], y=df_tps['ΔT_Matelas (min)'], marker_color='#7f7f7f'))
-        fig.update_layout(barmode='stack', plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=380, yaxis_title="Minutes")
+        fig.add_trace(go.Bar(name='CODA', x=df_tps['Machine'], y=df_tps['CODA (min)'], marker_color='#9467bd'))
+        fig.add_trace(go.Bar(name='DT_POSIT', x=df_tps['Machine'], y=df_tps['DT_POSIT (min)'], marker_color='#ff7f0e'))
+        fig.add_trace(go.Bar(name='POSIT/Marker', x=df_tps['Machine'], y=df_tps['POSIT/Marker'], marker_color='#17becf'))
+        fig.add_trace(go.Bar(name='ΔT_Matelas', x=df_tps['Machine'], y=df_tps['ΔT_Matelas (min)'], marker_color='#7f7f7f'))
+        fig.update_layout(barmode='stack', plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', height=450, yaxis_title="Minutes")
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
         st.markdown('<div class="section-title">🥧 Répartition globale des pertes</div>', unsafe_allow_html=True)
         t_int = df_tps['Interruptions (min)'].sum()
+        t_coda = df_tps['CODA (min)'].sum()
         t_pos = df_tps['DT_POSIT (min)'].sum()
+        t_posit_marker = df_tps['POSIT/Marker'].sum()
         t_del = df_tps['ΔT_Matelas (min)'].sum()
+        
         fig_pie = px.pie(
-            values=[t_int, t_pos, t_del], names=['Interruptions', 'DT_POSIT', 'ΔT_Matelas'],
-            color_discrete_sequence=['#d62728', '#ff7f0e', '#7f7f7f'], hole=0.4, title="Répartition globale"
+            values=[t_int, t_coda, t_pos, t_posit_marker, t_del], 
+            names=['Interruptions', 'CODA', 'DT_POSIT', 'POSIT/Marker', 'ΔT_Matelas'],
+            color_discrete_sequence=['#d62728', '#9467bd', '#ff7f0e', '#17becf', '#7f7f7f'], 
+            hole=0.4, title="Répartition globale"
         )
         fig_pie.update_traces(textinfo='percent+label')
-        fig_pie.update_layout(height=380)
+        fig_pie.update_layout(height=450)
         st.plotly_chart(fig_pie, use_container_width=True)
 
     st.markdown("---")
     st.markdown('<div class="section-title">📊 Diagramme de Pareto des Pertes</div>', unsafe_allow_html=True)
-    pareto_data = pd.DataFrame({'Source': ['Interruptions', 'ΔT_Matelas', 'DT_POSIT'], 'Total (min)': [t_int, t_del, t_pos]}).sort_values('Total (min)', ascending=False)
+    
+    pareto_data = pd.DataFrame({
+        'Source': ['Interruptions', 'CODA', 'DT_POSIT', 'POSIT/Marker', 'ΔT_Matelas'], 
+        'Total (min)': [t_int, t_coda, t_pos, t_posit_marker, t_del]
+    }).sort_values('Total (min)', ascending=False)
     pareto_data['Cumul (%)'] = pareto_data['Total (min)'].cumsum() / pareto_data['Total (min)'].sum() * 100
 
     fig_pareto = go.Figure()
     fig_pareto.add_trace(go.Bar(
-        x=pareto_data['Source'], y=pareto_data['Total (min)'], marker_color=['#d62728', '#ff7f0e', '#7f7f7f'], name='Durée (min)',
+        x=pareto_data['Source'], y=pareto_data['Total (min)'], 
+        marker_color=['#d62728', '#9467bd', '#ff7f0e', '#17becf', '#7f7f7f'], 
+        name='Durée (min)',
         text=[f"{v:.0f} min" for v in pareto_data['Total (min)']], textposition='outside'
     ))
     fig_pareto.add_trace(go.Scatter(
@@ -901,7 +986,7 @@ def page_pertes(df, df_tps):
     fig_pareto.add_hline(y=80, line_dash="dash", line_color="red", annotation_text="80%", yref='y2')
     fig_pareto.update_layout(
         yaxis=dict(title="Durée (minutes)"), yaxis2=dict(title="Cumul (%)", overlaying='y', side='right', range=[0, 110]),
-        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', legend=dict(orientation="h", yanchor="bottom", y=1.02), height=400
+        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', legend=dict(orientation="h", yanchor="bottom", y=1.02), height=450
     )
     st.plotly_chart(fig_pareto, use_container_width=True)
 
@@ -913,17 +998,19 @@ def page_pertes(df, df_tps):
     for i, (_, row) in enumerate(df_tps.iterrows()):
         with cols_pie[i % n_cols]:
             fig_m = px.pie(
-                values=[row['Interruptions (min)'], row['DT_POSIT (min)'], row['ΔT_Matelas (min)']],
-                names=['Interruptions', 'DT_POSIT', 'ΔT_Matelas'], title=row['Machine'],
-                color_discrete_sequence=['#d62728', '#ff7f0e', '#7f7f7f'], hole=0.35
+                values=[row['Interruptions (min)'], row['CODA (min)'], row['DT_POSIT (min)'], row['POSIT/Marker'], row['ΔT_Matelas (min)']],
+                names=['Interruptions', 'CODA', 'DT_POSIT', 'POSIT/Marker', 'ΔT_Matelas'], 
+                title=row['Machine'],
+                color_discrete_sequence=['#d62728', '#9467bd', '#ff7f0e', '#17becf', '#7f7f7f'], 
+                hole=0.35
             )
             fig_m.update_traces(textinfo='percent')
-            fig_m.update_layout(height=280, margin=dict(t=40, b=10, l=10, r=10), showlegend=False)
+            fig_m.update_layout(height=300, margin=dict(t=40, b=10, l=10, r=10), showlegend=False)
             st.plotly_chart(fig_m, use_container_width=True)
 
     st.markdown("---")
     st.markdown('<div class="section-title">📋 Tableau détaillé des pertes</div>', unsafe_allow_html=True)
-    cols_pertes = ['Machine', 'Interruptions (min)', 'DT_POSIT (min)', 'ΔT_Matelas (min)', 'Cutting (min)', 'TPS (%)']
+    cols_pertes = ['Machine', 'Interruptions (min)', 'CODA (min)', 'DT_POSIT (min)', 'POSIT/Marker', 'ΔT_Matelas (min)', 'Cutting (min)', 'TPS (%)']
     st.dataframe(df_tps[cols_pertes], use_container_width=True, hide_index=True)
 
 # ==================== PAGE 4 : ADV PRODUCTION ====================
@@ -993,14 +1080,16 @@ def page_machine(df, df_tps):
     df_tps_m = df_tps[df_tps['Machine'] == machine_selectionnee].iloc[0]
 
     st.markdown("---")
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     tps_val = df_tps_m['TPS (%)']
     color_tps = "#2ca02c" if tps_val >= 75 else "#ff7f0e" if tps_val >= 40 else "#d62728"
+    
     for col, val, label, color in [
-        (col1, f"{tps_val:.1f}%",              "⚙️ TPS",             color_tps),
+        (col1, f"{tps_val:.1f}%", "⚙️ TPS", color_tps),
         (col2, f"{df_tps_m['Interruptions (min)']:.0f} min", "⚠️ Interruptions", "#d62728"),
-        (col3, f"{df_tps_m['DT_POSIT (min)']:.0f} min",     "📍 DT_POSIT",      "#ff7f0e"),
-        (col4, f"{df_tps_m['ΔT_Matelas (min)']:.0f} min",   "🔄 ΔT_Matelas",    "#7f7f7f"),
+        (col3, f"{df_tps_m['CODA (min)']:.0f} min", "📊 CODA", "#9467bd"),
+        (col4, f"{df_tps_m['DT_POSIT (min)']:.0f} min", "📍 DT_POSIT", "#ff7f0e"),
+        (col5, f"{df_tps_m['ΔT_Matelas (min)']:.0f} min", "🔄 ΔT_Matelas", "#7f7f7f"),
     ]:
         with col:
             st.markdown(f"""
@@ -1028,8 +1117,10 @@ def page_machine(df, df_tps):
     with col2:
         st.markdown(f'<div class="section-title">🥧 Répartition des pertes — {machine_selectionnee}</div>', unsafe_allow_html=True)
         fig_pie = px.pie(
-            values=[df_tps_m['Interruptions (min)'], df_tps_m['DT_POSIT (min)'], df_tps_m['ΔT_Matelas (min)']],
-            names=['Interruptions', 'DT_POSIT', 'ΔT_Matelas'], color_discrete_sequence=['#d62728', '#ff7f0e', '#7f7f7f'], hole=0.4
+            values=[df_tps_m['Interruptions (min)'], df_tps_m['CODA (min)'], df_tps_m['DT_POSIT (min)'], df_tps_m['POSIT/Marker'], df_tps_m['ΔT_Matelas (min)']],
+            names=['Interruptions', 'CODA', 'DT_POSIT', 'POSIT/Marker', 'ΔT_Matelas'], 
+            color_discrete_sequence=['#d62728', '#9467bd', '#ff7f0e', '#17becf', '#7f7f7f'], 
+            hole=0.4
         )
         fig_pie.update_traces(textinfo='percent+label')
         fig_pie.update_layout(height=280, margin=dict(t=20, b=10))
@@ -1045,7 +1136,7 @@ def page_machine(df, df_tps):
 
     st.markdown("---")
     st.markdown(f'<div class="section-title">📋 Données — {machine_selectionnee}</div>', unsafe_allow_html=True)
-    cols_show = [c for c in ['DATE', 'Marker', 'CUTTING TIME', 'INTERRUPTIONS TIME', 'POSIT/Marker', 'ΔT_Matelas', 'STATE'] if c in df_m.columns]
+    cols_show = [c for c in ['DATE', 'Marker', 'CUTTING TIME', 'INTERRUPTIONS TIME', 'CODA INTERRUPTIONS TIME', 'DT_POSIT (min)', 'POSIT/Marker', 'ΔT_Matelas', 'STATE'] if c in df_m.columns]
     st.dataframe(df_m[cols_show], use_container_width=True, hide_index=True)
 
 # ==================== PAGE 6 : DONNÉES BRUTES ====================
@@ -1077,7 +1168,7 @@ def page_donnees(df, df_tps):
     st.info(f"📊 **{len(df_f)} lignes** affichées sur {len(df)} total")
     st.markdown("---")
 
-    cols_show = [c for c in ['DATE', 'Machine', 'Marker', 'CUTTING TIME', 'INTERRUPTIONS TIME', 'POSIT/Marker', 'ΔT_Matelas', 'STATE'] if c in df_f.columns]
+    cols_show = [c for c in ['DATE', 'Machine', 'Marker', 'CUTTING TIME', 'INTERRUPTIONS TIME', 'CODA INTERRUPTIONS TIME', 'DT_POSIT (min)', 'POSIT/Marker', 'ΔT_Matelas', 'STATE'] if c in df_f.columns]
     if st.session_state.role == "admin":
         st.caption("✏️ Mode édition — double-cliquez pour modifier")
         st.data_editor(df_f[cols_show], use_container_width=True, hide_index=True)
@@ -1104,15 +1195,74 @@ def main():
         st.warning("⚠️ Aucune donnée trouvée. Vérifiez le fichier modele_lectra.xlsx")
         st.stop()
 
-    df_tps = calculer_tps_adv(df)
+    # ==================== FILTRE DATE GLOBAL ====================
+    if 'DATE' in df.columns and not df.empty:
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("### 📅 Filtre par Date")
+        
+        # Récupérer toutes les dates disponibles
+        dates_disponibles = sorted(df['DATE'].unique())
+        
+        # Créer un sélecteur de dates
+        date_min = dates_disponibles[0] if dates_disponibles else datetime.now()
+        date_max = dates_disponibles[-1] if dates_disponibles else datetime.now()
+        
+        # Sélecteur de plage de dates
+        date_debut = st.sidebar.date_input(
+            "📅 Date de début",
+            value=date_min,
+            min_value=date_min,
+            max_value=date_max
+        )
+        
+        date_fin = st.sidebar.date_input(
+            "📅 Date de fin",
+            value=date_max,
+            min_value=date_min,
+            max_value=date_max
+        )
+        
+        # Convertir en datetime pour la comparaison
+        date_debut = pd.to_datetime(date_debut)
+        date_fin = pd.to_datetime(date_fin)
+        
+        # Filtrer les données
+        df_filtre = df[(df['DATE'] >= date_debut) & (df['DATE'] <= date_fin)]
+        
+        if df_filtre.empty:
+            st.warning(f"⚠️ Aucune donnée disponible entre le {date_debut.strftime('%d/%m/%Y')} et le {date_fin.strftime('%d/%m/%Y')}")
+            st.stop()
+        
+        # Afficher la plage sélectionnée dans la sidebar
+        st.sidebar.info(f"📊 Données du **{date_debut.strftime('%d/%m/%Y')}** au **{date_fin.strftime('%d/%m/%Y')}**")
+        
+        # Calculer TPS avec les données filtrées
+        df_tps = calculer_tps_adv(df_filtre)
+        
+        # Stocker les données filtrées dans session_state
+        st.session_state.df_filtre = df_filtre
+        st.session_state.df_tps = df_tps
+        st.session_state.date_debut = date_debut
+        st.session_state.date_fin = date_fin
+    else:
+        df_tps = calculer_tps_adv(df)
+        st.session_state.df_filtre = df
+        st.session_state.df_tps = df_tps
+    
     page = st.session_state.get('page_active', 'Accueil')
 
-    if page == "Accueil": page_accueil(df, df_tps)
-    elif page == "TPS & Performance": page_tps(df, df_tps)
-    elif page == "Analyse des Pertes": page_pertes(df, df_tps)
-    elif page == "ADV Production": page_adv(df, df_tps)
-    elif page == "Analyse par Machine": page_machine(df, df_tps)
-    elif page == "Données Brutes": page_donnees(df, df_tps)
+    if page == "Accueil": 
+        page_accueil(st.session_state.df_filtre, st.session_state.df_tps)
+    elif page == "TPS & Performance": 
+        page_tps(st.session_state.df_filtre, st.session_state.df_tps)
+    elif page == "Analyse des Pertes": 
+        page_pertes(st.session_state.df_filtre, st.session_state.df_tps)
+    elif page == "ADV Production": 
+        page_adv(st.session_state.df_filtre, st.session_state.df_tps)
+    elif page == "Analyse par Machine": 
+        page_machine(st.session_state.df_filtre, st.session_state.df_tps)
+    elif page == "Données Brutes": 
+        page_donnees(st.session_state.df_filtre, st.session_state.df_tps)
 
     st.markdown("---")
     st.markdown("""
