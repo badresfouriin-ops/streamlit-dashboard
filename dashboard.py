@@ -524,7 +524,36 @@ def sidebar_navigation():
             st.session_state.theme = new_theme
             st.rerun()
         if st.session_state.get('theme','dark') == 'light':
-            st.markdown("<script>document.body.classList.add('theme-light')</script>", unsafe_allow_html=True)
+            st.markdown("""
+            <style>
+            html, body, [data-testid="stAppViewContainer"], .main {
+                background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%) !important;
+                color: #0f172a !important;
+            }
+            [data-testid="stSidebar"] {
+                background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+            }
+            .kpi-card {
+                background: linear-gradient(145deg, #ffffff, #f8faff) !important;
+                border-color: #e2e8f0 !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,.06) !important;
+            }
+            .kpi-label { color: #475569 !important; }
+            .kpi-unit  { color: #94a3b8 !important; }
+            .page-header {
+                background: linear-gradient(135deg, #1e3a8a, #2563eb) !important;
+            }
+            .status-bar {
+                background: #ffffff !important;
+                border-color: #e2e8f0 !important;
+                color: #475569 !important;
+            }
+            .section-title { color: #1e293b !important; border-color: #e2e8f0 !important; }
+            .perf-table th { background: #f8fafc !important; color: #64748b !important; border-color: #e2e8f0 !important; }
+            .perf-table td { color: #1e293b !important; border-color: #f1f5f9 !important; }
+            .toast-bar { background: rgba(34,197,94,.1) !important; color: #15803d !important; }
+            </style>
+            """, unsafe_allow_html=True)
 
         st.markdown("---")
 
