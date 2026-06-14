@@ -553,59 +553,94 @@ def sidebar_navigation():
 
 # ==================== DONNEES SIMULATION ====================
 def generer_donnees_demo():
-    """Données réelles simulation — LO1→LO6, 06–09 Avril 2025"""
-    dates = pd.to_datetime(['2025-04-06','2025-04-07','2025-04-08','2025-04-09'])
+    """Données réelles simulation — LO1→LO6, 06–09 Avril 2025 (valeurs réelles)"""
 
-    tps_par_machine = {
-        'LO1': [40.86, 41.20, 40.50, 40.86],
-        'LO2': [50.37, 49.80, 51.10, 50.20],
-        'LO3': [38.66, 39.00, 38.20, 38.90],
-        'LO4': [38.19, 37.80, 38.50, 38.30],
-        'LO5': [38.43, 38.10, 38.90, 38.30],
-        'LO6': [44.06, 43.50, 44.80, 43.90],
-    }
+    def hms_to_min(hms):
+        h, m, s = map(int, hms.split(':'))
+        return h * 60 + m + s / 60
+
+    # date -> ADV journalière (%)
     adv_jour = {
-        pd.Timestamp('2025-04-06'): 68.0,
-        pd.Timestamp('2025-04-07'): 57.0,
-        pd.Timestamp('2025-04-08'): 65.0,
-        pd.Timestamp('2025-04-09'): 60.0,
+        '2025-04-06': 68.56,
+        '2025-04-07': 56.42,
+        '2025-04-08': 65.23,
+        '2025-04-09': 61.67,
     }
-    pertes_machine = {
-        'LO1': [1850, 870,  1055],
-        'LO2': [1480, 680,  440],
-        'LO3': [1720, 620,  385],
-        'LO4': [1690, 645,  410],
-        'LO5': [1640, 610,  390],
-        'LO6': [1820, 590,  325],
+
+    # date -> machine -> (INTERRUPTIONS, CODA, DT_POSIT, ΔT_Matelas, TPS %)
+    data = {
+        '2025-04-06': {
+            'LO1': ('03:13:29', '00:51:04', '01:25:00', '01:49:00', 54.45),
+            'LO2': ('04:01:12', '00:24:28', '01:21:18', '01:12:43', 59.08),
+            'LO3': ('04:26:41', '00:32:52', '01:26:51', '01:52:15', 45.00),
+            'LO4': ('04:01:00', '01:15:10', '01:27:23', '01:54:57', 42.12),
+            'LO5': ('03:22:51', '00:30:10', '01:05:30', '02:10:21', 32.15),
+            'LO6': ('04:31:21', '01:21:32', '00:57:23', '01:22:31', 31.51),
+        },
+        '2025-04-07': {
+            'LO1': ('02:38:09', '00:30:26', '01:10:00', '02:43:00', 37.76),
+            'LO2': ('02:54:01', '00:20:07', '01:12:43', '02:17:01', 48.00),
+            'LO3': ('03:07:10', '00:45:32', '00:58:46', '01:56:48', 36.41),
+            'LO4': ('03:33:42', '01:32:52', '01:14:50', '02:04:45', 30.12),
+            'LO5': ('02:58:26', '00:29:49', '01:15:10', '01:54:50', 39.40),
+            'LO6': ('03:12:08', '01:32:52', '01:26:51', '01:54:50', 42.52),
+        },
+        '2025-04-08': {
+            'LO1': ('03:05:03', '00:29:40', '00:48:00', '02:55:00', 30.71),
+            'LO2': ('04:17:23', '01:01:25', '01:11:14', '02:27:22', 44.85),
+            'LO3': ('03:33:42', '00:45:32', '01:21:18', '02:17:01', 35.10),
+            'LO4': ('02:54:01', '00:45:32', '01:14:50', '01:54:57', 39.40),
+            'LO5': ('04:10:00', '01:10:23', '01:15:10', '01:52:15', 37.15),
+            'LO6': ('02:41:00', '00:45:32', '00:48:00', '01:22:31', 69.51),
+        },
+        '2025-04-09': {
+            'LO1': ('04:35:50', '00:06:06', '01:04:00', '03:44:00', 40.53),
+            'LO2': ('03:08:54', '00:43:12', '01:58:47', '02:46:22', 49.54),
+            'LO3': ('04:10:00', '01:15:10', '01:10:23', '01:54:57', 38.12),
+            'LO4': ('04:17:23', '01:01:25', '01:11:14', '02:27:22', 41.10),
+            'LO5': ('04:26:41', '00:32:52', '01:26:51', '01:52:15', 45.00),
+            'LO6': ('02:02:05', '00:05:17', '01:01:00', '02:58:00', 32.71),
+        },
     }
 
     rng = np.random.default_rng(42)
-    rows = []
-    marker_id = 1
-    for machine, tps_vals in tps_par_machine.items():
-        inter_t, dwn_t, mat_t = pertes_machine[machine]
-        for i, date in enumerate(dates):
-            tps = tps_vals[i]
-            adv = adv_jour[date]
-            for j in range(10):
+    n_markers = 10
+    rows, marker_id = [], 1
+
+    for date_str, machines in data.items():
+        date = pd.Timestamp(date_str)
+        adv_target = adv_jour[date_str] / 100
+
+        for machine, (inter, coda, dtpos, matel, tps_target) in machines.items():
+            inter_min = hms_to_min(inter)
+            coda_min  = hms_to_min(coda)
+            dtpos_min = hms_to_min(dtpos)
+            matel_min = hms_to_min(matel)
+
+            # jitter centré sur 0 -> la moyenne des 10 markers = valeur cible exacte
+            tps_jit = rng.uniform(-0.4, 0.4, n_markers); tps_jit -= tps_jit.mean()
+            adv_jit = rng.uniform(-0.005, 0.005, n_markers); adv_jit -= adv_jit.mean()
+
+            for j in range(n_markers):
+                tps_shift = round(tps_target + tps_jit[j], 2)
                 rows.append({
                     'DATE': date,
                     'Machine': machine,
                     'Marker': f"MRK-{marker_id:04d}",
-                    'TPS Shift': round(tps + rng.uniform(-0.3, 0.3), 2),
-                    'ADV': round(adv / 100 + rng.uniform(-0.01, 0.01), 4),
-                    'CUTTING TIME': round(tps * 4.8 + rng.uniform(-5, 5), 1),
-                    'INTERRUPTIONS TIME': round(inter_t / 40, 1),
-                    'CODA INTERRUPTIONS TIME': round(rng.uniform(5, 20), 1),
-                    'DWN TIME': round(dwn_t / 40, 1),
-                    'DT_POSIT (min)': round(dwn_t / 40, 1),
-                    'ΔT_Matelas': round(mat_t / 40, 1),
-                    'POSIT/Marker': round(dwn_t / 400, 2),
-                    'STATE': 'NOK' if tps < 75 else 'OK',
+                    'TPS Shift': tps_shift,
+                    'ADV': round(adv_target + adv_jit[j], 4),
+                    'CUTTING TIME': round(tps_shift * 4.8, 1),
+                    'INTERRUPTIONS TIME': round(inter_min / n_markers, 2),
+                    'CODA INTERRUPTIONS TIME': round(coda_min / n_markers, 2),
+                    'DWN TIME': round(dtpos_min / n_markers, 2),
+                    'DT_POSIT (min)': round(dtpos_min / n_markers, 2),
+                    'ΔT_Matelas': round(matel_min / n_markers, 2),
+                    'POSIT/Marker': round(dtpos_min / n_markers / 10, 3),
+                    'STATE': 'NOK' if tps_shift < 75 else 'OK',
                 })
                 marker_id += 1
-    return pd.DataFrame(rows)
 
+    return pd.DataFrame(rows)
 # ==================== UTILITAIRES ====================
 def time_to_minutes(val):
     if pd.isna(val): return 0
